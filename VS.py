@@ -33,3 +33,6 @@ class VisionSystem:
 
     def read_random_words(self, word_devices, double_word_devices):
         return self.machine.randomread(word_devices=word_devices, dword_devices=double_word_devices)
+
+    def update_image_capture_trigger(self):
+        pass
