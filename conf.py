@@ -8,9 +8,7 @@ machines_names = {
             'port': 40021,
             'address':
                 {
-                    'master_on_address': 'M6',
-                    'machine_status_address': 'M44',
-                    'mct_address': 'D50080',
+                    'Trigger_address': 'M765',
                 },
             'target_network': None,
             'plc_id_in_target_network': None
