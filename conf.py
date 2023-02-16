@@ -11,6 +11,7 @@ machines_names = {
                     'Trigger_address': 'M765',
                 },
             'target_network': None,
-            'plc_id_in_target_network': None
+            'plc_id_in_target_network': None,
+            'Z':'Z'
         },
 }
