@@ -1,15 +1,18 @@
 from VS import VisionSystem
 from conf import machines_names
-import os
-import glob
+
 
 seal_pin = VisionSystem(id_line=machines_names['Gas_Generant']['id_line'],
                         id_machine=machines_names['Gas_Generant']['id_machine'],
                         name=machines_names['Gas_Generant']['id_machine'],
                         ip=machines_names['Gas_Generant']['ip'],
                         port=machines_names['Gas_Generant']['port'],
-                        addresses=machines_names['Gas_Generant']['address'])
-seal_pin.set_camera_resolution(1024, 1024)
+                        addresses=machines_names['Gas_Generant']['address'],
+                        image_width=1024,
+                        image_height=1024,
+                        model_file_name='mobilenet_v2_fpnlite_20230220.tflite',
+                        score_min_value=0.25,
+                        category_names=["PR", "QA"])
 
 while True:
     seal_pin.take_photo()
