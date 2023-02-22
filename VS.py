@@ -1,5 +1,8 @@
 import pymcprotocol
 from picamera import PiCamera
+import matplotlib.pyplot as plt
+from PIL import Image
+import psutil
 import cv2
 import glob
 import os
@@ -11,12 +14,24 @@ from tflite_support.task import vision
 import utils
 
 
+wm = plt.get_current_fig_manager()
+wm.full_screen_toggle()
+
+plt.axis('off')
+plt.tight_layout()
+
+plt.ion()
+c = 0
+
+
+
 def time_wrapper(func):
     def wrap(*args, **kwargs):
         start = time.time()
         result = func(*args, **kwargs)
         end = time.time()
-        print(f'Func {func.__name__} Time: {end-start}')
+        if end-start > 0.1:
+            print(f'Func {func.__name__} Time: {end-start}')
         return result
     return wrap
 
@@ -87,51 +102,73 @@ class VisionSystem:
 
     @time_wrapper
     def take_photo(self):
-        cv2.destroyAllWindows()
-        print('Trigger value is..', self.trigger_value)
         self.connect()
         trigger_value = self.read_bits(head=self.trigger_address)
         self.close_connection()
         if trigger_value[0] != self.trigger_value:
             self.trigger_value = trigger_value[0]
-            print('Trigger value updated to..', self.trigger_value)
             if self.trigger_value == 1:
+                cv2.destroyAllWindows()
                 image = np.empty((self.image_width, self.image_height, 3), dtype=np.uint8)
-                self.camera.capture(image, 'rgb')
+                self.camera.capture(image, 'bgr')
                 self.save_raw_image(image)
                 defects = self.detect_defects(image)
-                if defects:
-                    image_with_defect = self.add_defects_to_raw_image(defects, image)
-                    self.save_image_with_defects(image_with_defect)
+                if defects.detections:
+                    image_with_judgement = self.add_defects_to_raw_image(defects, image)
+
+                    self.save_image_with_defects(image_with_judgement)
+                else:
+                    image_with_judgement = self.add_ok_label_to_raw_image(image)
+                self.show_image(image_with_judgement)
 
     def save_raw_image(self, image):
         name = 'img' + self.define_photo_number() + '.jpg'
         cv2.imwrite(name, image)
 
     def detect_defects(self, image):
-        input_tensor = vision.TensorImage.create_from_array(image)
+        rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        input_tensor = vision.TensorImage.create_from_array(rgb_image)
         detection_result = self.detection_model.detect(input_tensor)
         return detection_result
 
     def save_image_with_defects(self, image_with_defect):
-        name = 'img' + self.define_photo_number() + '_defections.jpg'
+        name = 'img' + str(int(self.define_photo_number())-1) + '_defects.jpg'
         cv2.imwrite(name, image_with_defect)
 
-    @staticmethod
     def add_defects_to_raw_image(self, defects, image):
         for det in defects.detections:
             for cat in det.categories:
                 print("{cname} - {score:.2f}%".format(cname=cat.category_name, score=cat.score * 100))
-        image_with_defects = utils.visualize(image, defects)
-        cv2.imshow('DEFECTS', image_with_defects)
+        image_with_defects = utils.visualize_defects(image, defects, w=self.image_width, h=self.image_height)
         return image_with_defects
+
+    def add_ok_label_to_raw_image(self, image):
+        image_without_defect = utils.visualize_ok_labels(image, w=self.image_width, h=self.image_height)
+        return image_without_defect
+
+    @staticmethod
+    def show_image(image):
+        global c
+        if c == 0:
+            global test
+            test = plt.imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+            c = 1
+            plt.show()
+
+        else:
+
+            test.set_data(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+            plt.draw()
+
 
     @staticmethod
     def define_photo_number():
         list_of_files = glob.glob('*.jpg')
         latest_file = max(list_of_files, key=os.path.getctime)
         print(latest_file)
-        number = str(int(latest_file.replace('img', '').replace('.jpg', '')) + 1)
+        number = str(
+            int
+            (latest_file.replace('img', '').replace('.jpg', '').replace('_defects', '')) + 1)
         print('Capturing photo...', number)
         return number
 
