@@ -1,8 +1,6 @@
 import pymcprotocol
 from picamera import PiCamera
 import matplotlib.pyplot as plt
-from PIL import Image
-import psutil
 import cv2
 import glob
 import os
@@ -12,17 +10,6 @@ from tflite_support.task import core
 from tflite_support.task import processor
 from tflite_support.task import vision
 import utils
-
-
-wm = plt.get_current_fig_manager()
-wm.full_screen_toggle()
-
-plt.axis('off')
-plt.tight_layout()
-
-plt.ion()
-c = 0
-
 
 
 def time_wrapper(func):
@@ -55,6 +42,8 @@ class VisionSystem:
         self.camera = PiCamera()
         self.set_camera_resolution()
         self.detection_model = self.initialize_model(model_file_name, score_min_value, category_names)
+        self.first_image = True
+        self.define_image_visualization()
 
     def define_machine_root(self):
         pymc3e = pymcprotocol.Type3E()
@@ -115,7 +104,6 @@ class VisionSystem:
                 defects = self.detect_defects(image)
                 if defects.detections:
                     image_with_judgement = self.add_defects_to_raw_image(defects, image)
-
                     self.save_image_with_defects(image_with_judgement)
                 else:
                     image_with_judgement = self.add_ok_label_to_raw_image(image)
@@ -146,20 +134,22 @@ class VisionSystem:
         image_without_defect = utils.visualize_ok_labels(image, w=self.image_width, h=self.image_height)
         return image_without_defect
 
-    @staticmethod
-    def show_image(image):
-        global c
-        if c == 0:
-            global test
-            test = plt.imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
-            c = 1
+    def show_image(self, image):
+        if self.first_image:
+            self.fig = plt.imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+            self.first_image = False
             plt.show()
-
         else:
-
-            test.set_data(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+            self.fig.set_data(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
             plt.draw()
 
+    @staticmethod
+    def define_image_visualization():
+        fm = plt.get_current_fig_manager()
+        fm.full_screen_toggle()
+        plt.axis('off')
+        plt.tight_layout()
+        plt.ion()
 
     @staticmethod
     def define_photo_number():
@@ -171,4 +161,3 @@ class VisionSystem:
             (latest_file.replace('img', '').replace('.jpg', '').replace('_defects', '')) + 1)
         print('Capturing photo...', number)
         return number
-
