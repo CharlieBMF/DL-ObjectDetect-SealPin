@@ -7,5 +7,5 @@ converter = tf.lite.TFLiteConverter.from_saved_model('TFLite_inference_graph_2/s
 tflite_model = converter.convert()
 
 # Save the model.
-with open('fackup_003.tflite', 'wb') as f:
+with open('mobilenet_v2_fpnlite_20230220.tflite', 'wb') as f:
   f.write(tflite_model)

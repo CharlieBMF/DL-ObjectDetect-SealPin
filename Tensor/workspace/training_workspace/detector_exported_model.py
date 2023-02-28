@@ -92,7 +92,7 @@ import tensorflow as tf
 #     return str(label_dir)
 #
 # LABEL_FILENAME = 'mscoco_label_map.pbtxt'
-PATH_TO_LABELS = r'C:\Tensorflow\workspace\training_demo\annotations\label_map.pbtxt'
+PATH_TO_LABELS = r'C:\Scripts\RPI-ES3-VS-SealPin\Tensorflow\workspace\training_workspace\annotations\label_map.pbtxt'
 
 # %%
 # Load the model
@@ -106,9 +106,9 @@ from keras import layers
 from keras import models
 import tensorflow_hub as hub
 
-#PATH_TO_SAVED_MODEL = r"C:\Scripts\RPI-ES3-VS-SealPin\Tensorflow\workspace\training_workspace\exported-models\my_model_640x640_2500steps\saved_model"
-PATH_TO_SAVED_MODEL = r"C:\Tensorflow\workspace\training_demo\exported-models\my_model_640x640\saved_model"
-
+#PATH_TO_SAVED_MODEL = r"C:\Scripts\RPI-ES3-VS-SealPin\Tensorflow\workspace\training_workspace\exported-models\my_model_640x640_25000steps\saved_model"
+#PATH_TO_SAVED_MODEL = r"C:\Tensorflow\workspace\training_demo\exported-models\my_model_640x640\saved_model"
+PATH_TO_SAVED_MODEL = r"C:\Scripts\RPI-ES3-VS-SealPin\Tensorflow\workspace\training_workspace\exported-models\my_mobilenet_v2_fpnlite_640x640_2500steps\saved_model"
 
 print('Loading model...', end='')
 start_time = time.time()
@@ -183,14 +183,17 @@ def load_image_into_numpy_array(path):
     """
     return np.array(Image.open(path))
 
-IMAGE_PATHS = [r"C:\Scripts\RPI-ES3-VS-SealPin\Tensorflow\workspace\training_workspace\images\images_1024x1024_w_XML\test\img66.jpg",
-               r"C:\Scripts\RPI-ES3-VS-SealPin\Tensorflow\workspace\training_workspace\images\images_1024x1024_w_XML\test\img68.jpg",
-               r"C:\Scripts\RPI-ES3-VS-SealPin\Tensorflow\workspace\training_workspace\images\images_1024x1024_w_XML\test\img116.jpg",
-               r"C:\Scripts\RPI-ES3-VS-SealPin\Tensorflow\workspace\training_workspace\images\images_1024x1024_w_XML\test\img122.jpg",
-               r"C:\Scripts\RPI-ES3-VS-SealPin\Tensorflow\workspace\training_workspace\images\images_1024x1024_w_XML\test\img340.jpg",
-               r"C:\Scripts\RPI-ES3-VS-SealPin\Tensorflow\workspace\training_workspace\images\images_1024x1024_w_XML\test\img531.jpg",
-               r"C:\Scripts\RPI-ES3-VS-SealPin\Tensorflow\workspace\training_workspace\images\images_1024x1024_w_XML\test\img1101.jpg",
-               r"C:\Scripts\RPI-ES3-VS-SealPin\Tensorflow\workspace\training_workspace\images\images_1024x1024_w_XML\test\img2052.jpg"]
+IMAGE_PATHS = [r"C:\Scripts\RPI-ES3-VS-SealPin\Tensorflow\workspace\training_workspace\images\images_1024x1024_w_XML\test\img151.jpg",
+               r"C:\Scripts\RPI-ES3-VS-SealPin\Tensorflow\workspace\training_workspace\images\images_1024x1024_w_XML\test\img185.jpg",
+               r"C:\Scripts\RPI-ES3-VS-SealPin\Tensorflow\workspace\training_workspace\images\images_1024x1024_w_XML\test\img215.jpg",
+               r"C:\Scripts\RPI-ES3-VS-SealPin\Tensorflow\workspace\training_workspace\images\images_1024x1024_w_XML\test\img337.jpg",
+               r"C:\Scripts\RPI-ES3-VS-SealPin\Tensorflow\workspace\training_workspace\images\images_1024x1024_w_XML\test\img485.jpg",
+               r"C:\Scripts\RPI-ES3-VS-SealPin\Tensorflow\workspace\training_workspace\images\images_1024x1024_w_XML\test\img1182.jpg",
+               r"C:\Scripts\RPI-ES3-VS-SealPin\Tensorflow\workspace\training_workspace\images\images_1024x1024_w_XML\test\img1981.jpg",
+               r"C:\Scripts\RPI-ES3-VS-SealPin\Tensorflow\workspace\training_workspace\images\images_1024x1024_w_XML\test\img2052.jpg",
+               r"C:\Scripts\RPI-ES3-VS-SealPin\Tensorflow\workspace\training_workspace\images\images_1024x1024_w_XML\test\img2060.jpg",
+               r"C:\Scripts\RPI-ES3-VS-SealPin\Tensorflow\workspace\training_workspace\images\images_1024x1024_w_XML\test\img2231.jpg"]
+
 # IMAGE_PATHS = [r"C:\Tensorflow\workspace\training_demo\images\test\0001.png",
 #                r"C:\Tensorflow\workspace\training_demo\images\test\0002.png",
 #                r"C:\Tensorflow\workspace\training_demo\images\test\0003.png",

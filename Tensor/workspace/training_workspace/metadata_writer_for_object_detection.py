@@ -45,7 +45,7 @@ class ModelSpecificInfo(object):
 
 
 _MODEL_INFO = {
-    "fackup_002.tflite":
+    "mobilenet_v2_fpnlite_20230220.tflite":
         ModelSpecificInfo(
             name="MobileNetV1 image classifier",
             version="v1",
