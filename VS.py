@@ -97,7 +97,6 @@ class VisionSystem:
         if trigger_value[0] != self.trigger_value:
             self.trigger_value = trigger_value[0]
             if self.trigger_value == 1:
-                cv2.destroyAllWindows()
                 image = np.empty((self.image_width, self.image_height, 3), dtype=np.uint8)
                 self.camera.capture(image, 'bgr')
                 self.save_raw_image(image)
@@ -137,8 +136,8 @@ class VisionSystem:
     def show_image(self, image):
         if self.first_image:
             self.fig = plt.imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
-            self.first_image = False
             plt.show()
+            self.first_image = False
         else:
             self.fig.set_data(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
             plt.draw()
