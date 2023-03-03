@@ -22,7 +22,7 @@ fps_avg_frame_count = 10
 
 # Initialize the object detection model
 base_options = core.BaseOptions(
-    file_name='mobilenet_v2_fpnlite_20230220.tflite',
+    file_name='mobilenet_v2_fpnlite_20230301.tflite',
     use_coral=False,
     num_threads=4
 )

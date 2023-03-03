@@ -11,6 +11,14 @@ from tflite_support.task import processor
 from tflite_support.task import vision
 import utils
 
+# plt.ion()
+# wm = plt.get_current_fig_manager()
+# wm.full_screen_toggle()
+# plt.axis('off')
+# plt.tight_layout()
+
+# c = 0
+
 
 def time_wrapper(func):
     def wrap(*args, **kwargs):
@@ -43,7 +51,6 @@ class VisionSystem:
         self.set_camera_resolution()
         self.detection_model = self.initialize_model(model_file_name, score_min_value, category_names)
         self.first_image = True
-        self.define_image_visualization()
 
     def define_machine_root(self):
         pymc3e = pymcprotocol.Type3E()
@@ -70,6 +77,12 @@ class VisionSystem:
     def set_camera_resolution(self):
         self.camera.resolution = (self.image_width, self.image_height)
 
+    def read_photo_trigger(self):
+        self.connect()
+        trigger_value = self.read_bits(head=self.trigger_address)
+        self.close_connection()
+        return trigger_value[0]
+
     @time_wrapper
     def initialize_model(self, model_file_name: str, score_min_value: float, category_names: list):
         base_options = core.BaseOptions(
@@ -88,25 +101,6 @@ class VisionSystem:
         )
         detector = vision.ObjectDetector.create_from_options(options)
         return detector
-
-    @time_wrapper
-    def take_photo(self):
-        self.connect()
-        trigger_value = self.read_bits(head=self.trigger_address)
-        self.close_connection()
-        if trigger_value[0] != self.trigger_value:
-            self.trigger_value = trigger_value[0]
-            if self.trigger_value == 1:
-                image = np.empty((self.image_width, self.image_height, 3), dtype=np.uint8)
-                self.camera.capture(image, 'bgr')
-                self.save_raw_image(image)
-                defects = self.detect_defects(image)
-                if defects.detections:
-                    image_with_judgement = self.add_defects_to_raw_image(defects, image)
-                    self.save_image_with_defects(image_with_judgement)
-                else:
-                    image_with_judgement = self.add_ok_label_to_raw_image(image)
-                self.show_image(image_with_judgement)
 
     def save_raw_image(self, image):
         name = 'img' + self.define_photo_number() + '.jpg'
@@ -132,23 +126,6 @@ class VisionSystem:
     def add_ok_label_to_raw_image(self, image):
         image_without_defect = utils.visualize_ok_labels(image, w=self.image_width, h=self.image_height)
         return image_without_defect
-
-    def show_image(self, image):
-        if self.first_image:
-            self.fig = plt.imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
-            plt.show()
-            self.first_image = False
-        else:
-            self.fig.set_data(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
-            plt.draw()
-
-    @staticmethod
-    def define_image_visualization():
-        fm = plt.get_current_fig_manager()
-        fm.full_screen_toggle()
-        plt.axis('off')
-        plt.tight_layout()
-        plt.ion()
 
     @staticmethod
     def define_photo_number():
