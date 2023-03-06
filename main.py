@@ -5,7 +5,7 @@ import numpy as np
 import cv2
 
 
-def initialize_potting():
+def initialize_plotting():
     wm = plt.get_current_fig_manager()
     wm.full_screen_toggle()
     plt.axis('off')
@@ -20,7 +20,7 @@ def show_image(drawing, image):
     plt.pause(0.2)
 
 
-drawing = initialize_potting()
+drawing = initialize_plotting()
 seal_pin = VisionSystem(id_line=machines_names['Gas_Generant']['id_line'],
                         id_machine=machines_names['Gas_Generant']['id_machine'],
                         name=machines_names['Gas_Generant']['id_machine'],
