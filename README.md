@@ -24,4 +24,22 @@ The resulting system must interact with the operator according to the following 
 In addition, the burr information (detection window coordinates, category, % grade) is converted to JSON. What follows is an attempt to pass the above information to an external SQL server via the API. If the information is not written to the external SQL table, a write to the local sql database on the RPI is performed. </li>
   <li> On subsequent program rounds, entries in the local SQL database are checked. This applies to both the table associated with the FTP image storage and the table associated with the NG piece detection site. If communication with an external FTP or SQL server is already possible, the local entries are transferred to the outside and deleted from the local database. This guarantees the reliability of the system's operation even if connections to external services are broken. In this case, there is a transfer of information to the local base, and from there it is passed to the outside when communication is stabilized. </li>
   <li> If burrs occur, the operator must remove the piece from the machine, clean the burrs and repeat the process until the piece is determined to be OK </li>
-  
+ </ol>
+
+<h1> Labeling </h1>
+<p>LabelImg was used to mark the burrs to train the model. In the first stage, 3,000 images were collected, where about 650 burrs were found. These photos were labeled according to two categories - PR - this is a category indicating a large burr, and QA - a category indicating a smaller burr, not necessarily required to be removed, but the operator should pay attention to it. </p>
+<p> After a positive first evaluation, the marking of the photos was made using only one category. The final model was learned using one burr category on a sample of 2k photos of specially selected burrs </p>
+
+![image](https://user-images.githubusercontent.com/109242797/223373334-4914c0e7-91b2-4f19-a5ff-659d02fdeb0e.png)
+
+
+<h1> Model </h1> 
+<p>Because of the need for an edge solution, it was decided to use the MobileNet V2 FPNLite 640x640 SSD network. This is a good application for mobile systems, or RPI microcomputers. The processing time of the image in this case is very optimal, and sufficient accuracy is guaranteed. The system was also compared in the application of SSD ResNet50 V1 FPN 640x640 (RetinaNet50), however, due to the limited hardware for training the model, as well as its use, it turned out to be too extensive. In addition, in this case, model processing time is crucial. The operator, in cooperation with the script, must perform all the steps in a time not exceeding 7 seconds. The model was trained achieving results as follows </p>
+
+![image](https://user-images.githubusercontent.com/109242797/223375454-0d3da04a-0f6f-4427-8a4d-52fae3f1b9c4.png)
+
+
+![image](https://user-images.githubusercontent.com/109242797/223371478-fbb9d242-4d9e-4448-8a62-2c933c7faa10.png)
+
+
+
