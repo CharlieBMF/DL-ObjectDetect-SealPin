@@ -25,6 +25,9 @@ In addition, the burr information (detection window coordinates, category, % gra
   <li> On subsequent program rounds, entries in the local SQL database are checked. This applies to both the table associated with the FTP image storage and the table associated with the NG piece detection site. If communication with an external FTP or SQL server is already possible, the local entries are transferred to the outside and deleted from the local database. This guarantees the reliability of the system's operation even if connections to external services are broken. In this case, there is a transfer of information to the local base, and from there it is passed to the outside when communication is stabilized. </li>
   <li> If burrs occur, the operator must remove the piece from the machine, clean the burrs and repeat the process until the piece is determined to be OK </li>
  </ol>
+ 
+ ![image](https://user-images.githubusercontent.com/109242797/223391530-2d4cd6d1-efa2-49ef-8bae-87f3282d4b67.png)
+
 
 <h1> Labeling </h1>
 <p>LabelImg was used to mark the burrs to train the model. In the first stage, 3,000 images were collected, where about 650 burrs were found. These photos were labeled according to two categories - PR - this is a category indicating a large burr, and QA - a category indicating a smaller burr, not necessarily required to be removed, but the operator should pay attention to it. </p>
