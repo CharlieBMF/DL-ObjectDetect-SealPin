@@ -38,8 +38,8 @@ In addition, the burr information (detection window coordinates, category, % gra
 
 ![image](https://user-images.githubusercontent.com/109242797/223375454-0d3da04a-0f6f-4427-8a4d-52fae3f1b9c4.png)
 
+<p> In the training process, a suitable value of hyperparameters was sought in order to achieve the best possible burr evaluation result. By determining the appropriate hyperparameters, the model was learned. The model thus created had to be converted to a tflite graph. The resulting conversion was again converted to tflite format. After completing the conversion with metadata describing the model, the final tflite model was obtained, which could be fired in an edge application. This model was directly placed on the RPI microcomputer, from where it is loaded once at each reboot. During the program's circulation, the model is used to predict burrs on new images. A diagram of the model formation is illustrated below. </p>
 
-![image](https://user-images.githubusercontent.com/109242797/223371478-fbb9d242-4d9e-4448-8a62-2c933c7faa10.png)
-
+![image](https://user-images.githubusercontent.com/109242797/223389130-d4967d8a-3bf7-415a-a43b-5507885bc2d9.png)
 
 
