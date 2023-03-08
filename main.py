@@ -11,13 +11,14 @@ def initialize_plotting():
     plt.axis('off')
     plt.tight_layout()
     plt.ion()
+    plt.show()
     return plt.imshow(np.empty((1024, 1024, 3), dtype=np.uint8))
 
 
-def show_image(drawing, image):
-    drawing.set_data(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+def show_image(displayed_plot, image_to_show):
+    displayed_plot.set_data(cv2.cvtColor(image_to_show, cv2.COLOR_BGR2RGB))
     plt.draw()
-    plt.pause(0.2)
+    plt.pause(1)
 
 
 drawing = initialize_plotting()
@@ -34,19 +35,35 @@ seal_pin = VisionSystem(id_line=machines_names['Gas_Generant']['id_line'],
                         category_names=["PR"])
 
 while True:
+    # Detect trigger value
     trigger_value = seal_pin.read_photo_trigger()
     if trigger_value != seal_pin.trigger_value:
+        # Detected trigger value change
         seal_pin.trigger_value = trigger_value
         if seal_pin.trigger_value == 1:
+            # Detected trigger value change from 0 to 1, photo has to be executed
             image = np.empty((seal_pin.image_width, seal_pin.image_height, 3), dtype=np.uint8)
             seal_pin.camera.capture(image, 'bgr')
+            # Capture photo
             seal_pin.save_raw_image(image)
+            # Save photo as raw image
             defects = seal_pin.detect_defects(image)
-            for det in defects.detections:
-                print(det.bounding_box)
+            # Detect if there are any defects on image
             if defects.detections:
+                # Defect detected. Draw NG frame on image. Save Image with defect.
                 image_with_judgement = seal_pin.add_defects_to_raw_image(defects, image)
                 seal_pin.save_image_with_defects(image_with_judgement)
             else:
+                # None defect detected. Draw OK frame on image.
                 image_with_judgement = seal_pin.add_ok_label_to_raw_image(image)
+            # Time priority to show image for operaotr
             show_image(drawing, image_with_judgement)
+            if defects.detections:
+                # Background action to send detection info to SQL or local PostgreSQL
+                detection_json = seal_pin.create_detections_json(defects.detections)
+                try:
+                    seal_pin.report_detection_to_sql_by_api(detection_json)
+                except:
+                    seal_pin.report_detection_to_local_sql(detection_json)
+
+

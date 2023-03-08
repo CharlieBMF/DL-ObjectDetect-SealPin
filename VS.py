@@ -1,23 +1,17 @@
 import pymcprotocol
 from picamera import PiCamera
-import matplotlib.pyplot as plt
 import cv2
 import glob
 import os
 import time
-import numpy as np
 from tflite_support.task import core
 from tflite_support.task import processor
 from tflite_support.task import vision
 import utils
-
-# plt.ion()
-# wm = plt.get_current_fig_manager()
-# wm.full_screen_toggle()
-# plt.axis('off')
-# plt.tight_layout()
-
-# c = 0
+from datetime import datetime
+import json
+import requests
+import psycopg2 as pg2
 
 
 def time_wrapper(func):
@@ -126,6 +120,52 @@ class VisionSystem:
     def add_ok_label_to_raw_image(self, image):
         image_without_defect = utils.visualize_ok_labels(image, w=self.image_width, h=self.image_height)
         return image_without_defect
+
+    def create_detections_json(self, detections):
+        detection_json = {
+            'barcode': self.define_photo_number(),
+            'created_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            'description': self.define_photo_number(),
+            'image_path': 'C:/',
+            'detections': [
+                {
+                    'bounding_box':
+                        {
+                            'origin_x': detect.bounding_box.origin_x,
+                            'origin_y': detect.bounding_box.origin_y,
+                            'width': detect.bounding_box.width,
+                            'height': detect.bounding_box.height
+                        },
+                    'categories':
+                        [
+                            {
+                                'index': detect.categories[0].index,
+                                'score': detect.categories[0].score,
+                                'display_name': detect.categories[0].display_name,
+                                'category_name': detect.categories[0].category_name
+                            }
+                        ]
+                }
+                for detect in detections
+            ]
+        }
+        return detection_json
+
+    @staticmethod
+    def report_detection_to_sql_by_api(json_obj):
+        response = requests.post('http://hamster.dsse.local', json=json_obj)
+        print(response.status_code)
+
+    @staticmethod
+    def report_detection_to_local_sql(json_obj):
+        json_quotes_converted = str(json_obj).replace("'", '"')
+        query = f"INSERT INTO test(name) VALUES ('{json_quotes_converted}')"
+        print('LocalSQL INSERT:', query)
+        conn = pg2.connect(database='pi', user='pi', password='pi')
+        cur = conn.cursor()
+        cur.execute(query)
+        conn.commit()
+        conn.close()
 
     @staticmethod
     def define_photo_number():
