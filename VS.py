@@ -126,7 +126,7 @@ class VisionSystem:
         return image_without_defect
 
     def create_detections_json(self, detections):
-        detection_json = {
+        detection_json = [{
             'barcode': self.define_photo_number(),
             'created_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             'description': self.define_photo_number(),
@@ -152,7 +152,7 @@ class VisionSystem:
                 }
                 for detect in detections
             ]
-        }
+        }]
         return detection_json
 
     def copy_localsql_to_api(self):
@@ -165,8 +165,10 @@ class VisionSystem:
 
     @staticmethod
     def report_detection_to_sql_by_api(json_obj):
-        json_quotes_converted = json.loads(str(json_obj).replace("'", '"'))
-        response = requests.post('http://hamster.dsse.local', json=json_quotes_converted)
+        # print('JSON OBJ BEFORE CONVER:', json_obj)
+        # json_quotes_converted = json.loads(str(json_obj).replace("'", '"'))
+        print('FINAL JSON TO API:', json_obj)
+        response = requests.post('http://hamster.dsse.local', json=json_obj)
         print('API response:', response.status_code)
         if response.status_code != 200:
             raise Exception('Sorry response from API is not succesfull')
