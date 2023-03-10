@@ -1,5 +1,8 @@
+import time
+
 from VS import VisionSystem
 from conf import machines_names
+from datetime import datetime
 import matplotlib.pyplot as plt
 import numpy as np
 import cv2
@@ -56,14 +59,29 @@ while True:
             else:
                 # None defect detected. Draw OK frame on image.
                 image_with_judgement = seal_pin.add_ok_label_to_raw_image(image)
-            # Time priority to show image for operaotr
+            # Time priority to show image for operator
             show_image(drawing, image_with_judgement)
             if defects.detections:
                 # Background action to send detection info to SQL or local PostgreSQL
                 detection_json = seal_pin.create_detections_json(defects.detections)
                 try:
                     seal_pin.report_detection_to_sql_by_api(detection_json)
+                    seal_pin.possible_to_api_connect = True
                 except:
                     seal_pin.report_detection_to_local_sql(detection_json)
+                    seal_pin.possible_to_api_connect = False
 
+    #seal_pin.copy_localsql_to_api()
 
+    actual_hour = datetime.now().hour
+    # if actual_hour != seal_pin.actual_hour and seal_pin.possible_to_api_connect:
+    #     try:
+    #         seal_pin.copy_localsql_to_api()
+    #     except:
+    #         pass
+    #
+    # if actual_hour != seal_pin.actual_hour and seal_pin.possible_to_FTP_connect:
+    #     pass
+    #     # try:
+    #     #     seal_pin.copy_local_image_to_FTP()
+    seal_pin.actual_hour = actual_hour

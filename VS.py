@@ -9,9 +9,10 @@ from tflite_support.task import processor
 from tflite_support.task import vision
 import utils
 from datetime import datetime
-import json
 import requests
 import psycopg2 as pg2
+import pandas as pd
+import json
 
 
 def time_wrapper(func):
@@ -45,6 +46,9 @@ class VisionSystem:
         self.set_camera_resolution()
         self.detection_model = self.initialize_model(model_file_name, score_min_value, category_names)
         self.first_image = True
+        self.actual_hour = datetime.now().hour
+        self.possible_to_api_connect = False
+        self.possible_to_FTP_connect = False
 
     def define_machine_root(self):
         pymc3e = pymcprotocol.Type3E()
@@ -151,15 +155,26 @@ class VisionSystem:
         }
         return detection_json
 
+    def copy_localsql_to_api(self):
+        conn = pg2.connect(database='pi', user='pi', password='pi')
+        select_df = pd.read_sql('SELECT * from test', con=conn)
+        print('Full df:', select_df)
+        json_to_api = [json.loads(row) for row in select_df['name']]
+        print('selected json from local to api:', json_to_api)
+        self.report_detection_to_sql_by_api(json_to_api)
+
     @staticmethod
     def report_detection_to_sql_by_api(json_obj):
-        response = requests.post('http://hamster.dsse.local', json=json_obj)
-        print(response.status_code)
+        json_quotes_converted = json.loads(str(json_obj).replace("'", '"'))
+        response = requests.post('http://hamster.dsse.local', json=json_quotes_converted)
+        print('API response:', response.status_code)
+        if response.status_code != 200:
+            raise Exception('Sorry response from API is not succesfull')
 
     @staticmethod
     def report_detection_to_local_sql(json_obj):
-        json_quotes_converted = str(json_obj).replace("'", '"')
-        query = f"INSERT INTO test(name) VALUES ('{json_quotes_converted}')"
+        detection_quotes_converted = str(json_obj).replace("'", '"')
+        query = f"INSERT INTO test(name) VALUES ('{detection_quotes_converted}')"
         print('LocalSQL INSERT:', query)
         conn = pg2.connect(database='pi', user='pi', password='pi')
         cur = conn.cursor()
