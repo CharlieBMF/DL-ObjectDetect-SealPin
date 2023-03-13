@@ -174,7 +174,7 @@ class VisionSystem:
     @staticmethod
     def report_detection_to_local_sql(json_obj):
         detection_quotes_converted = str(json_obj).replace("'", '"')
-        query = f"INSERT INTO detections(detecion_json) VALUES ('{detection_quotes_converted}')"
+        query = f"INSERT INTO detections(detecion_json, time_stamp) VALUES ('{detection_quotes_converted}','{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}')"
         print('LocalSQL INSERT:', query)
         conn = pg2.connect(database='pi', user='pi', password='pi')
         cur = conn.cursor()
