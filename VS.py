@@ -153,28 +153,19 @@ class VisionSystem:
         }
         return detection_json
 
-    # def copy_localsql_to_api(self):
-    #     conn = pg2.connect(database='pi', user='pi', password='pi')
-    #     select_df = pd.read_sql('SELECT * from test', con=conn)
-    #     print('Full df:', select_df)
-    #     json_to_api = [json.loads(row) for row in select_df['name']]
-    #     print('selected json from local to api:', json_to_api)
-    #     self.report_detection_to_sql_by_api(json_to_api)
-
-
     @staticmethod
     def report_detection_to_api(json_obj):
         print('FINAL JSON TO API:', json_obj)
         response = requests.post('http://hamster.dsse.local/Vision/SendData', json=json_obj)
-        print('API response:', response.status_code)
-        print(response.text)
-        if response.status_code != 200:
+        print('Response succes', json.loads(response.text)["sucess"])
+        if not json.loads(response.text)["sucess"]:
             raise Exception('Sorry response from API is not succesfull')
 
     @staticmethod
     def report_detection_to_local_sql(json_obj):
         detection_quotes_converted = str(json_obj).replace("'", '"')
-        query = f"INSERT INTO detections(detecion_json, time_stamp) VALUES ('{detection_quotes_converted}','{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}')"
+        query = f"INSERT INTO detections(detecion_json, time_stamp) VALUES" \
+                f" ('{detection_quotes_converted}','{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}')"
         print('LocalSQL INSERT:', query)
         conn = pg2.connect(database='pi', user='pi', password='pi')
         cur = conn.cursor()
@@ -187,6 +178,7 @@ class VisionSystem:
         query = "SELECT * FROM detections LIMIT 100;"
         conn = pg2.connect(database='pi', user='pi', password='pi')
         select_df = pd.read_sql(query, con=conn)
+        print('SELECTED DF:', select_df)
         detections_json = [json.loads(row) for row in select_df['detecion_json']]
         print('SELECTED FROM LOCALSQL\n', detections_json)
         return detections_json

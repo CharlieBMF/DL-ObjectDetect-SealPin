@@ -41,12 +41,12 @@ while True:
     # Detect trigger value
     start = time.time()
     trigger_value = seal_pin.read_photo_trigger()
-    #####if trigger_value != seal_pin.trigger_value:
-    if True:
+    if trigger_value != seal_pin.trigger_value:
+    #####if True:
         # Detected trigger value change
         seal_pin.trigger_value = trigger_value
-        #####if seal_pin.trigger_value == 1:
-        if True:
+        if seal_pin.trigger_value == 1:
+        #####if True:
             # Detected trigger value change from 0 to 1, photo has to be executed
             image = np.empty((seal_pin.image_width, seal_pin.image_height, 3), dtype=np.uint8)
             seal_pin.camera.capture(image, 'bgr')
@@ -64,21 +64,19 @@ while True:
                 image_with_judgement = seal_pin.add_ok_label_to_raw_image(image)
             # Time priority to show image for operator
             show_image(drawing, image_with_judgement)
-            if defects.detections:
-                # Background action to send detection info to localSQL and later API
-                detection_json = seal_pin.create_detections_json(defects.detections)
-                seal_pin.report_detection_to_local_sql(detection_json)
-                detections_json = seal_pin.select_detections_from_local_sql()
-                seal_pin.report_detection_to_api(detections_json)
-
-
-
-
-    # if actual_hour != seal_pin.actual_hour and seal_pin.possible_to_FTP_connect:
-    #     pass
-    #     # try:
-    #     #     seal_pin.copy_local_image_to_FTP()
+            # if defects.detections:
+            #     # Background action to send detection info to localSQL and later API
+            #     detection_json = seal_pin.create_detections_json(defects.detections)
+            #     seal_pin.report_detection_to_local_sql(detection_json)
+            #     detections_json = seal_pin.select_detections_from_local_sql()
+            #     try:
+            #         seal_pin.report_detection_to_api(detections_json)
+            #     except:
+            #         pass
+            #     else:
+            #         ### DELETE TOP 100 from local sql cause it was reported to API
+            #         pass
 
     stop = time.time()
-    print('time', stop-start)
-    time.sleep(5)
+    #print('time', stop-start)
+    #time.sleep(5)
