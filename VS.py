@@ -118,14 +118,30 @@ class VisionSystem:
             print(barcode_ASCII_swapped)
             self.barcode_value = ''.join(barcode_ASCII_swapped)
         except:
-            self.barcode_value = self.define_raw_photo_name()
+            self.barcode_value = self.define_photo_number()
         print('Final barcode:', self.barcode_value)
 
     def define_raw_photo_name(self):
-        return self.define_photo_number + 'img'
+        jpg_name = self.barcode_value + 'img.jpg'
+        if os.path.isfile(jpg_name):
+            for i in range(1, 101):
+                temp_jpg_name = self.barcode_value + '_' + str(i) + '.jpg'
+                if os.path.isfile(temp_jpg_name):
+                    continue
+                else:
+                    jpg_name = temp_jpg_name
+        return jpg_name
 
     def define_defects_photo_name(self):
-        return self.define_photo_number() + 'img_defects'
+        jpg_name = self.barcode_value + 'img.jpg'
+        if os.path.isfile(jpg_name):
+            for i in range(1, 101):
+                temp_jpg_name = self.barcode_value + '_' + str(i) + 'img.jpg'
+                if os.path.isfile(temp_jpg_name):
+                    continue
+                else:
+                    jpg_name = self.barcode_value + '_' + str(i-1) + '_defects.jpg'
+        return jpg_name
 
     def save_raw_image(self, image):
         name = self.define_raw_photo_name()

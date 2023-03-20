@@ -42,7 +42,7 @@ while True:
     start = time.time()
     seal_pin.read_barcode_value()
     trigger_value = seal_pin.read_photo_trigger()
-    seal_pin.define_photo_number()
+    #seal_pin.define_photo_number()
     #####if trigger_value != seal_pin.trigger_value:
     if True:
         # Detected trigger value change
@@ -54,6 +54,8 @@ while True:
             seal_pin.camera.capture(image, 'bgr')
             # Capture photo
             seal_pin.save_raw_image(image)
+            # Read Barcode
+            seal_pin.read_barcode_value()
             # Save photo as raw image
             defects = seal_pin.detect_defects(image)
             # Detect if there are any defects on image
