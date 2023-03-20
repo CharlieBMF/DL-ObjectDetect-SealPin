@@ -9,6 +9,7 @@ machines_names = {
             'address':
                 {
                     'Trigger_address': 'M765',
+                    'Barcode_address': 'D654'
                 },
             'target_network': None,
             'plc_id_in_target_network': None

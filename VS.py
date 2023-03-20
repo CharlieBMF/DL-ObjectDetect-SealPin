@@ -40,9 +40,11 @@ class VisionSystem:
         self.plc_id_in_target_network = plc_id_in_target_network
         self.machine = self.define_machine_root()
         self.trigger_address = addresses['Trigger_address']
+        self.barcode_address = addresses['Barcode_address']
         self.image_width = image_width
         self.image_height = image_height
         self.trigger_value = 0
+        self.barcode_value = ''
         self.camera = PiCamera()
         self.set_camera_resolution()
         self.detection_model = self.initialize_model(model_file_name, score_min_value, category_names)
@@ -73,12 +75,6 @@ class VisionSystem:
     def set_camera_resolution(self):
         self.camera.resolution = (self.image_width, self.image_height)
 
-    def read_photo_trigger(self):
-        self.connect()
-        trigger_value = self.read_bits(head=self.trigger_address)
-        self.close_connection()
-        return trigger_value[0]
-
     @time_wrapper
     def initialize_model(self, model_file_name: str, score_min_value: float, category_names: list):
         base_options = core.BaseOptions(
@@ -98,8 +94,41 @@ class VisionSystem:
         detector = vision.ObjectDetector.create_from_options(options)
         return detector
 
+    def read_photo_trigger(self):
+        self.connect()
+        trigger_value = self.read_bits(head=self.trigger_address)
+        self.close_connection()
+        return trigger_value[0]
+
+    def read_barcode_value(self):
+        self.connect()
+        barcode_decimal_list = self.read_words(head=self.barcode_address, size=6)
+        self.close_connection()
+        try:
+            print('Barcode:', barcode_decimal_list)
+            barcode_binary = [bin(i).replace('b', '') for i in barcode_decimal_list]
+            barcode_binary[0] = barcode_binary[0][1:]
+            barcode_binary[1] = barcode_binary[1][1:]
+            print('Barcode:', barcode_binary)
+            barcode_ASCII_separated = list(map(
+                lambda x: str(chr(int(x[0:7], 2)) + chr(int(x[7:16], 2))), barcode_binary[:-1]
+            ))
+            barcode_ASCII_swapped = list(map(lambda x: str(x[1] + x[0]), barcode_ASCII_separated))
+            barcode_ASCII_swapped += chr(int(barcode_binary[-1], 2))
+            print(barcode_ASCII_swapped)
+            self.barcode_value = ''.join(barcode_ASCII_swapped)
+        except:
+            self.barcode_value = self.define_raw_photo_name()
+        print('Final barcode:', self.barcode_value)
+
+    def define_raw_photo_name(self):
+        return self.define_photo_number + 'img'
+
+    def define_defects_photo_name(self):
+        return self.define_photo_number() + 'img_defects'
+
     def save_raw_image(self, image):
-        name = 'img' + self.define_photo_number() + '.jpg'
+        name = self.define_raw_photo_name()
         cv2.imwrite(name, image)
 
     def detect_defects(self, image):
@@ -109,7 +138,7 @@ class VisionSystem:
         return detection_result
 
     def save_image_with_defects(self, image_with_defect):
-        name = 'img' + str(int(self.define_photo_number())-1) + '_defects.jpg'
+        name = self.define_defects_photo_name()
         cv2.imwrite(name, image_with_defect)
 
     def add_defects_to_raw_image(self, defects, image):
@@ -125,9 +154,9 @@ class VisionSystem:
 
     def create_detections_json(self, detections):
         detection_json = {
-            'barcode': self.define_photo_number(),
+            'barcode': self.barcode_value,
             'created_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-            'description': self.define_photo_number(),
+            'description': self.barcode_value,
             'image_path': 'C:/',
             'detections': [
                 {
@@ -174,7 +203,7 @@ class VisionSystem:
         conn.close()
 
     @staticmethod
-    def select_detections_from_local_sql():
+    def select_top100_detections_from_local_sql():
         query = "SELECT * FROM detections LIMIT 100;"
         conn = pg2.connect(database='pi', user='pi', password='pi')
         select_df = pd.read_sql(query, con=conn)
@@ -184,12 +213,21 @@ class VisionSystem:
         return detections_json
 
     @staticmethod
+    def delete_top100_detections_from_local_sql():
+        query = "DELETE FROM detections WHERE ctid IN (SELECT ctid FROM detections ORDER BY time_stamp LIMIT 100)"
+        conn = pg2.connect(database='pi', user='pi', password='pi')
+        cur = conn.cursor()
+        cur.execute(query)
+        conn.commit()
+        conn.close()
+
+    @staticmethod
     def define_photo_number():
-        list_of_files = glob.glob('*.jpg')
+        list_of_files = glob.glob('*img.jpg')
         latest_file = max(list_of_files, key=os.path.getctime)
-        print(latest_file)
         number = str(
             int
-            (latest_file.replace('img', '').replace('.jpg', '').replace('_defects', '')) + 1)
-        print('Capturing photo...', number)
+            (latest_file.replace('img', '').replace('.jpg', '')) + 1)
+        print('Actual number...', number)
         return number
+

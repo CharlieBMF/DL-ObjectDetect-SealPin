@@ -33,20 +33,22 @@ seal_pin = VisionSystem(id_line=machines_names['Gas_Generant']['id_line'],
                         addresses=machines_names['Gas_Generant']['address'],
                         image_width=1024,
                         image_height=1024,
-                        model_file_name='mobilenet_v2_fpnlite_20230220.tflite',
-                        score_min_value=0.20,
-                        category_names=["PR"])
+                        model_file_name='mobilenet_v2_fpnlite_202303017.tflite',
+                        score_min_value=0.30,
+                        category_names=["PR", "QA"])
 
 while True:
     # Detect trigger value
     start = time.time()
+    seal_pin.read_barcode_value()
     trigger_value = seal_pin.read_photo_trigger()
-    if trigger_value != seal_pin.trigger_value:
-    #####if True:
+    seal_pin.define_photo_number()
+    #####if trigger_value != seal_pin.trigger_value:
+    if True:
         # Detected trigger value change
         seal_pin.trigger_value = trigger_value
-        if seal_pin.trigger_value == 1:
-        #####if True:
+        #####if seal_pin.trigger_value == 1:
+        if True:
             # Detected trigger value change from 0 to 1, photo has to be executed
             image = np.empty((seal_pin.image_width, seal_pin.image_height, 3), dtype=np.uint8)
             seal_pin.camera.capture(image, 'bgr')
@@ -64,19 +66,20 @@ while True:
                 image_with_judgement = seal_pin.add_ok_label_to_raw_image(image)
             # Time priority to show image for operator
             show_image(drawing, image_with_judgement)
-            # if defects.detections:
-            #     # Background action to send detection info to localSQL and later API
-            #     detection_json = seal_pin.create_detections_json(defects.detections)
-            #     seal_pin.report_detection_to_local_sql(detection_json)
-            #     detections_json = seal_pin.select_detections_from_local_sql()
-            #     try:
-            #         seal_pin.report_detection_to_api(detections_json)
-            #     except:
-            #         pass
-            #     else:
-            #         ### DELETE TOP 100 from local sql cause it was reported to API
-            #         pass
+            if defects.detections:
+                # Background action to send detection info to localSQL and later API
+                detection_json = seal_pin.create_detections_json(defects.detections)
+                seal_pin.report_detection_to_local_sql(detection_json)
+                detections_json = seal_pin.select_top100_detections_from_local_sql()
+                try:
+                    # Report detection to api if accessible
+                    seal_pin.report_detection_to_api(detections_json)
+                except:
+                    pass
+                else:
+                    # DELETE TOP 100 from local sql cause it was reported to API
+                    seal_pin.delete_top100_detections_from_local_sql()
 
     stop = time.time()
-    #print('time', stop-start)
-    #time.sleep(5)
+    print('time', stop-start)
+    time.sleep(5)
