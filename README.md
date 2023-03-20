@@ -45,4 +45,22 @@ In addition, the burr information (detection window coordinates, category, % gra
 
 ![image](https://user-images.githubusercontent.com/109242797/223389130-d4967d8a-3bf7-415a-a43b-5507885bc2d9.png)
 
+python .\exporter_main_v2.py --input_ty
+pe image_tensor --pipeline_config_path .\models\my_mobilenet_v2_fpnlite_640x640_240000s\pipeline.config --trained
+_checkpoint_dir .\models\my_mobilenet_v2_fpnlite_640x640_240000s\ --output_directory .\exported-models\my_mobilen
+et_v2_fpnlite_640x640_240000steps
+
+python export_tflite_graph_tf2.py --pip
+eline_config_path ./exported-models/my_mobilenet_v2_fpnlite_640x640_240000steps/pipeline.config --trained_checkpo
+int_dir ./exported-models/my_mobilenet_v2_fpnlite_640x640_240000steps/checkpoint/ --output_directory ./exported-m
+odels/my_mobilenet_v2_fpnlite_640x640_240000s_tfgraph
+
+tflite_convert.py
+
+python metadata_writer_for_object_detec
+tion.py --model_file= mobilenet_v2_fpnlite_20230317.tflite --label_file= RPI_label --export_directory= ./exported
+-tflite
+
+
+
 
