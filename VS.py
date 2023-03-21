@@ -45,6 +45,7 @@ class VisionSystem:
         self.image_height = image_height
         self.trigger_value = 0
         self.barcode_value = ''
+        self.barcode_value_OK_read = False
         self.camera = PiCamera()
         self.set_camera_resolution()
         self.detection_model = self.initialize_model(model_file_name, score_min_value, category_names)
@@ -101,10 +102,10 @@ class VisionSystem:
         return trigger_value[0]
 
     def read_barcode_value(self):
-        self.connect()
-        barcode_decimal_list = self.read_words(head=self.barcode_address, size=6)
-        self.close_connection()
         try:
+            self.connect()
+            barcode_decimal_list = self.read_words(head=self.barcode_address, size=6)
+            self.close_connection()
             print('Barcode:', barcode_decimal_list)
             barcode_binary = [bin(i).replace('b', '') for i in barcode_decimal_list]
             barcode_binary[0] = barcode_binary[0][1:]
@@ -117,26 +118,36 @@ class VisionSystem:
             barcode_ASCII_swapped += chr(int(barcode_binary[-1], 2))
             print(barcode_ASCII_swapped)
             self.barcode_value = ''.join(barcode_ASCII_swapped)
+            if self.barcode_value.startswith('ER'):
+                raise Exception('Error read as barcode number')
         except:
             self.barcode_value = self.define_photo_number()
+            self.barcode_value_OK_read = False
+        else:
+            self.barcode_value_OK_read = True
         print('Final barcode:', self.barcode_value)
 
     def define_raw_photo_name(self):
-        jpg_name = self.barcode_value + 'img.jpg'
-        if os.path.isfile(jpg_name):
-            for i in range(1, 101):
-                temp_jpg_name = self.barcode_value + '_' + str(i) + '.jpg'
-                if os.path.isfile(temp_jpg_name):
-                    continue
-                else:
-                    jpg_name = temp_jpg_name
+        if self.barcode_value_OK_read:
+            '''This means in variable barcode_value is value like: SC4T3319258'''
+            jpg_name = self.barcode_value
+            if os.path.isfile(jpg_name):
+                for i in range(1, 101):
+                    temp_jpg_name = self.barcode_value + '_' + str(i) + '.jpg'
+                    if os.path.isfile(temp_jpg_name):
+                        continue
+                    else:
+                        jpg_name = temp_jpg_name
+        else:
+            '''This means in variable barcode_value is raw number like: 1521 '''
+            jpg_name = self.barcode_value + 'img.jpg'
         return jpg_name
 
     def define_defects_photo_name(self):
         jpg_name = self.barcode_value + 'img.jpg'
         if os.path.isfile(jpg_name):
             for i in range(1, 101):
-                temp_jpg_name = self.barcode_value + '_' + str(i) + 'img.jpg'
+                temp_jpg_name = self.barcode_value + '_' + str(i) + '.jpg'
                 if os.path.isfile(temp_jpg_name):
                     continue
                 else:
@@ -198,6 +209,17 @@ class VisionSystem:
         }
         return detection_json
 
+    def report_detection_to_local_sql(self, json_obj):
+        detection_quotes_converted = str(json_obj).replace("'", '"')
+        query = f"INSERT INTO detections(detecion_json, time_stamp) VALUES" \
+                f" ('{detection_quotes_converted}','{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}')"
+        print('LocalSQL INSERT:', query)
+        self.commit_query_to_local_sql(query)
+
+    def delete_top100_detections_from_local_sql(self):
+        query = "DELETE FROM detections WHERE ctid IN (SELECT ctid FROM detections ORDER BY time_stamp LIMIT 100)"
+        self.commit_query_to_local_sql(query)
+
     @staticmethod
     def report_detection_to_api(json_obj):
         print('FINAL JSON TO API:', json_obj)
@@ -205,18 +227,6 @@ class VisionSystem:
         print('Response succes', json.loads(response.text)["sucess"])
         if not json.loads(response.text)["sucess"]:
             raise Exception('Sorry response from API is not succesfull')
-
-    @staticmethod
-    def report_detection_to_local_sql(json_obj):
-        detection_quotes_converted = str(json_obj).replace("'", '"')
-        query = f"INSERT INTO detections(detecion_json, time_stamp) VALUES" \
-                f" ('{detection_quotes_converted}','{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}')"
-        print('LocalSQL INSERT:', query)
-        conn = pg2.connect(database='pi', user='pi', password='pi')
-        cur = conn.cursor()
-        cur.execute(query)
-        conn.commit()
-        conn.close()
 
     @staticmethod
     def select_top100_detections_from_local_sql():
@@ -229,8 +239,7 @@ class VisionSystem:
         return detections_json
 
     @staticmethod
-    def delete_top100_detections_from_local_sql():
-        query = "DELETE FROM detections WHERE ctid IN (SELECT ctid FROM detections ORDER BY time_stamp LIMIT 100)"
+    def commit_query_to_local_sql(query):
         conn = pg2.connect(database='pi', user='pi', password='pi')
         cur = conn.cursor()
         cur.execute(query)
@@ -243,7 +252,7 @@ class VisionSystem:
         latest_file = max(list_of_files, key=os.path.getctime)
         number = str(
             int
-            (latest_file.replace('img', '').replace('.jpg', '')) + 1)
+            (latest_file.replace('img.jpg', '')) + 1)
         print('Actual number...', number)
         return number
 

@@ -40,7 +40,6 @@ seal_pin = VisionSystem(id_line=machines_names['Gas_Generant']['id_line'],
 while True:
     # Detect trigger value
     start = time.time()
-    seal_pin.read_barcode_value()
     trigger_value = seal_pin.read_photo_trigger()
     #seal_pin.define_photo_number()
     #####if trigger_value != seal_pin.trigger_value:
@@ -52,10 +51,10 @@ while True:
             # Detected trigger value change from 0 to 1, photo has to be executed
             image = np.empty((seal_pin.image_width, seal_pin.image_height, 3), dtype=np.uint8)
             seal_pin.camera.capture(image, 'bgr')
-            # Capture photo
-            seal_pin.save_raw_image(image)
             # Read Barcode
             seal_pin.read_barcode_value()
+            # Capture photo
+            seal_pin.save_raw_image(image)
             # Save photo as raw image
             defects = seal_pin.detect_defects(image)
             # Detect if there are any defects on image
