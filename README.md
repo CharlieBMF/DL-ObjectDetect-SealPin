@@ -38,7 +38,8 @@ In addition, the burr information (detection window coordinates, category, % gra
 
 <h1> Model </h1> 
 <p>Because of the need for an edge solution, it was decided to use the MobileNet V2 FPNLite 640x640 SSD network. This is a good application for mobile systems, or RPI microcomputers. The processing time of the image in this case is very optimal, and sufficient accuracy is guaranteed. The system was also compared in the application of SSD ResNet50 V1 FPN 640x640 (RetinaNet50), however, due to the limited hardware for training the model, as well as its use, it turned out to be too extensive. In addition, in this case, model processing time is crucial. The operator, in cooperation with the script, must perform all the steps in a time not exceeding 7 seconds.  </p>
-<h3> 120k steps </h3>
+
+<h2> 120k steps </h2>
 
 <p>In the first step, the model was trained on the basis of 120,000 runs with the most important pipeline settings as below.</p>
 
@@ -87,7 +88,7 @@ train_config {
 
 <p>The model with 120k steps achieving results as follows.</p>
 
-![image](https://user-images.githubusercontent.com/109242797/223375454-0d3da04a-0f6f-4427-8a4d-52fae3f1b9c4.png)
+![image](https://user-images.githubusercontent.com/109242797/226926664-0070f28e-11b5-4f67-bcac-5290a02be50b.png)
 
 <h2> Second 240k steps </h2>
 
@@ -136,7 +137,7 @@ train_config {
 
 ![image](https://user-images.githubusercontent.com/109242797/226922735-3f09f61a-a864-4de1-bbd8-38f93df1aee1.png)
 
-<h2> 921k steps </h3>
+<h2> 921k steps </h2>
 <p>Also for testing purposes, a model was created for more than 921,000 steps. With current equipment resources, the model was trained for about 52 hours. The results as below</p>
 
 ```python
