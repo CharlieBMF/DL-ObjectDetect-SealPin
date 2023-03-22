@@ -29,8 +29,9 @@ def time_wrapper(func):
 
 class VisionSystem:
 
-    def __init__(self, id_line, id_machine, name, ip, port, addresses, image_width, image_height, model_file_name,
-                 score_min_value, category_names, target_network=None, plc_id_in_target_network=None,):
+    def __init__(self, id_line: int, id_machine: int, name: str, ip: str, port: int, addresses: dict, image_width: int,
+                 image_height: int, model_file_name: str, score_min_value: float, category_names: list,
+                 target_network=None, plc_id_in_target_network=None,):
         self.id_line = id_line
         self.id_machine = id_machine
         self.name = name
@@ -50,6 +51,7 @@ class VisionSystem:
         self.set_camera_resolution()
         self.detection_model = self.initialize_model(model_file_name, score_min_value, category_names)
         self.first_image = True
+        self.image_directory = '/home/pi/Scripts/' + datetime.now().strftime('%Y-%m-%d')
 
     def define_machine_root(self):
         pymc3e = pymcprotocol.Type3E()
@@ -119,7 +121,7 @@ class VisionSystem:
             print(barcode_ASCII_swapped)
             self.barcode_value = ''.join(barcode_ASCII_swapped)
             if self.barcode_value.startswith('ER'):
-                raise Exception('Error read as barcode number')
+                raise Exception('Error read in barcode number')
         except:
             self.barcode_value = self.define_photo_number()
             self.barcode_value_OK_read = False
@@ -128,35 +130,53 @@ class VisionSystem:
         print('Final barcode:', self.barcode_value)
 
     def define_raw_photo_name(self):
+        print('self.barcode_value_ok_read:', self.barcode_value_OK_read)
         if self.barcode_value_OK_read:
             '''This means in variable barcode_value is value like: SC4T3319258'''
-            jpg_name = self.barcode_value
+            jpg_name = self.barcode_value + '.jpg'
             if os.path.isfile(jpg_name):
-                for i in range(1, 101):
+                for i in range(1, 1001):
+                    print('i:', i)
                     temp_jpg_name = self.barcode_value + '_' + str(i) + '.jpg'
                     if os.path.isfile(temp_jpg_name):
                         continue
                     else:
                         jpg_name = temp_jpg_name
+                        break
         else:
             '''This means in variable barcode_value is raw number like: 1521 '''
             jpg_name = self.barcode_value + 'img.jpg'
+        print('RAW JPG Name:', jpg_name)
         return jpg_name
 
     def define_defects_photo_name(self):
-        jpg_name = self.barcode_value + 'img.jpg'
-        if os.path.isfile(jpg_name):
-            for i in range(1, 101):
-                temp_jpg_name = self.barcode_value + '_' + str(i) + '.jpg'
-                if os.path.isfile(temp_jpg_name):
-                    continue
-                else:
-                    jpg_name = self.barcode_value + '_' + str(i-1) + '_defects.jpg'
+        if self.barcode_value_OK_read:
+            jpg_name = self.barcode_value + '.jpg'
+            if os.path.isfile(jpg_name):
+                for i in range(1, 1001):
+                    temp_jpg_name = self.barcode_value + '_' + str(i) + '.jpg'
+                    if os.path.isfile(temp_jpg_name):
+                        continue
+                    else:
+                        jpg_name = self.barcode_value + '_' + str(i-1) + '_defects.jpg'
+        else:
+            jpg_name = self.barcode_value + 'img_defects.jpg'
         return jpg_name
 
+    def define_directory(self):
+        if not os.path.isdir(self.image_directory):
+            os.mkdir(self.image_directory)
+        if not self.image_directory.endswith(datetime.now().strftime('%Y-%m-%d')):
+            new_directory = self.image_directory[:-10] + datetime.now().strftime('%Y-%m-%d')
+            if not os.path.isdir(new_directory):
+                os.mkdir(new_directory)
+            self.image_directory = new_directory
+
     def save_raw_image(self, image):
-        name = self.define_raw_photo_name()
-        cv2.imwrite(name, image)
+        image_name = self.define_raw_photo_name()
+        self.define_directory()
+        image_path = self.image_directory + '/' + image_name
+        cv2.imwrite(image_path, image)
 
     def detect_defects(self, image):
         rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
@@ -165,8 +185,9 @@ class VisionSystem:
         return detection_result
 
     def save_image_with_defects(self, image_with_defect):
-        name = self.define_defects_photo_name()
-        cv2.imwrite(name, image_with_defect)
+        image_name = self.define_defects_photo_name()
+        image_path = self.image_directory + '/' + image_name
+        cv2.imwrite(image_path, image_with_defect)
 
     def add_defects_to_raw_image(self, defects, image):
         for det in defects.detections:
@@ -221,14 +242,6 @@ class VisionSystem:
         self.commit_query_to_local_sql(query)
 
     @staticmethod
-    def report_detection_to_api(json_obj):
-        print('FINAL JSON TO API:', json_obj)
-        response = requests.post('http://hamster.dsse.local/Vision/SendData', json=json_obj)
-        print('Response succes', json.loads(response.text)["sucess"])
-        if not json.loads(response.text)["sucess"]:
-            raise Exception('Sorry response from API is not succesfull')
-
-    @staticmethod
     def select_top100_detections_from_local_sql():
         query = "SELECT * FROM detections LIMIT 100;"
         conn = pg2.connect(database='pi', user='pi', password='pi')
@@ -245,6 +258,14 @@ class VisionSystem:
         cur.execute(query)
         conn.commit()
         conn.close()
+
+    @staticmethod
+    def report_detection_to_api(json_obj):
+        print('FINAL JSON TO API:', json_obj)
+        response = requests.post('http://hamster.dsse.local/Vision/SendData', json=json_obj)
+        print('Response succes', json.loads(response.text)["sucess"])
+        if not json.loads(response.text)["sucess"]:
+            raise Exception('Sorry response from API is not succesfull')
 
     @staticmethod
     def define_photo_number():
