@@ -37,30 +37,185 @@ In addition, the burr information (detection window coordinates, category, % gra
 
 
 <h1> Model </h1> 
-<p>Because of the need for an edge solution, it was decided to use the MobileNet V2 FPNLite 640x640 SSD network. This is a good application for mobile systems, or RPI microcomputers. The processing time of the image in this case is very optimal, and sufficient accuracy is guaranteed. The system was also compared in the application of SSD ResNet50 V1 FPN 640x640 (RetinaNet50), however, due to the limited hardware for training the model, as well as its use, it turned out to be too extensive. In addition, in this case, model processing time is crucial. The operator, in cooperation with the script, must perform all the steps in a time not exceeding 7 seconds. The model was trained achieving results as follows </p>
+<p>Because of the need for an edge solution, it was decided to use the MobileNet V2 FPNLite 640x640 SSD network. This is a good application for mobile systems, or RPI microcomputers. The processing time of the image in this case is very optimal, and sufficient accuracy is guaranteed. The system was also compared in the application of SSD ResNet50 V1 FPN 640x640 (RetinaNet50), however, due to the limited hardware for training the model, as well as its use, it turned out to be too extensive. In addition, in this case, model processing time is crucial. The operator, in cooperation with the script, must perform all the steps in a time not exceeding 7 seconds.  </p>
+<h3> 120k steps </h3>
+
+<p>In the first step, the model was trained on the basis of 120,000 runs with the most important pipeline settings as below.</p>
+
+```python
+train_config {
+  batch_size: 2
+  data_augmentation_options {
+    random_horizontal_flip {
+    }
+  }
+  data_augmentation_options {
+    random_crop_image {
+      min_object_covered: 0.0
+      min_aspect_ratio: 0.75
+      max_aspect_ratio: 3.0
+      min_area: 0.75
+      max_area: 1.0
+      overlap_thresh: 0.0
+    }
+  }
+  sync_replicas: true
+  optimizer {
+    momentum_optimizer {
+      learning_rate {
+        cosine_decay_learning_rate {
+          learning_rate_base: 0.07999999821186066
+          total_steps: 120000
+          warmup_learning_rate: 0.026666000485420227
+          warmup_steps: 1000
+        }
+      }
+      momentum_optimizer_value: 0.8999999761581421
+    }
+    use_moving_average: false
+  }
+  fine_tune_checkpoint: "pre-trained-models/ssd_mobilenet_v2_fpnlite_640x640_coco17_tpu-8/checkpoint/ckpt-0"
+  num_steps: 120000
+  startup_delay_steps: 0.0
+  replicas_to_aggregate: 8
+  max_number_of_boxes: 100
+  unpad_groundtruth_tensors: false
+  fine_tune_checkpoint_type: "detection"
+  fine_tune_checkpoint_version: V2
+}
+```
+
+<p>The model with 120k steps achieving results as follows.</p>
 
 ![image](https://user-images.githubusercontent.com/109242797/223375454-0d3da04a-0f6f-4427-8a4d-52fae3f1b9c4.png)
 
-<p> In the training process, a suitable value of hyperparameters was sought in order to achieve the best possible burr evaluation result. By determining the appropriate hyperparameters, the model was learned. The model thus created had to be converted to a tflite graph. The resulting conversion was again converted to tflite format. After completing the conversion with metadata describing the model, the final tflite model was obtained, which could be fired in an edge application. This model was directly placed on the RPI microcomputer, from where it is loaded once at each reboot. During the program's circulation, the model is used to predict burrs on new images. A diagram of the model formation is illustrated below. </p>
+<h2> Second 240k steps </h2>
+
+```python
+train_config {
+  batch_size: 2
+  data_augmentation_options {
+    random_horizontal_flip {
+    }
+  }
+  data_augmentation_options {
+    random_crop_image {
+      min_object_covered: 0.0
+      min_aspect_ratio: 0.75
+      max_aspect_ratio: 3.0
+      min_area: 0.75
+      max_area: 1.0
+      overlap_thresh: 0.0
+    }
+  }
+  sync_replicas: true
+  optimizer {
+    momentum_optimizer {
+      learning_rate {
+        cosine_decay_learning_rate {
+          learning_rate_base: 0.07999999821186066
+          total_steps: 240000
+          warmup_learning_rate: 0.026666000485420227
+          warmup_steps: 1000
+        }
+      }
+      momentum_optimizer_value: 0.8999999761581421
+    }
+    use_moving_average: false
+  }
+  fine_tune_checkpoint: "pre-trained-models/ssd_mobilenet_v2_fpnlite_640x640_coco17_tpu-8/checkpoint/ckpt-0"
+  num_steps: 240000
+  startup_delay_steps: 0.0
+  replicas_to_aggregate: 8
+  max_number_of_boxes: 100
+  unpad_groundtruth_tensors: false
+  fine_tune_checkpoint_type: "detection"
+  fine_tune_checkpoint_version: V2
+}
+```
+
+![image](https://user-images.githubusercontent.com/109242797/226922735-3f09f61a-a864-4de1-bbd8-38f93df1aee1.png)
+
+<h2> 921k steps </h3>
+<p>Also for testing purposes, a model was created for more than 921,000 steps. With current equipment resources, the model was trained for about 52 hours. The results as below</p>
+
+```python
+train_config {
+  batch_size: 2
+  data_augmentation_options {
+    random_horizontal_flip {
+    }
+  }
+  data_augmentation_options {
+    random_crop_image {
+      min_object_covered: 0.0
+      min_aspect_ratio: 0.75
+      max_aspect_ratio: 3.0
+      min_area: 0.75
+      max_area: 1.0
+      overlap_thresh: 0.0
+    }
+  }
+  sync_replicas: true
+  optimizer {
+    momentum_optimizer {
+      learning_rate {
+        cosine_decay_learning_rate {
+          learning_rate_base: 0.08
+          total_steps: 921600
+          warmup_learning_rate: 0.026666
+          warmup_steps: 1000
+        }
+      }
+      momentum_optimizer_value: 0.9
+    }
+    use_moving_average: false
+  }
+  fine_tune_checkpoint: "pre-trained-models/ssd_mobilenet_v2_fpnlite_640x640_coco17_tpu-8/checkpoint/ckpt-0"
+  num_steps: 921600
+  startup_delay_steps: 0.0
+  replicas_to_aggregate: 8
+  max_number_of_boxes: 100
+  unpad_groundtruth_tensors: false
+  fine_tune_checkpoint_type: "detection"
+  fine_tune_checkpoint_version: V2
+}
+```
+
+![image](https://user-images.githubusercontent.com/109242797/226924222-580e9987-993f-48bc-a5f6-a5b50fb7de3a.png)
+
+<p> The model thus created had to be converted to a tflite graph. The resulting conversion was again converted to tflite format. After completing the conversion with metadata describing the model, the final tflite model was obtained, which could be fired in an edge application. This model was directly placed on the RPI microcomputer, from where it is loaded once at each reboot. During the program's circulation, the model is used to predict burrs on new images. </p>
+<p> In order to apply all the above conversions, a number of commands were applied using the appropriate python scripts as follows </p>
+
+```python
+python .\exporter_main_v2.py --input_type image_tensor --pipeline_config_path .\models\my_mobilenet_v2_fpnlite_640x640_240000s\pipeline.config --trained_checkpoint_dir .\models\my_mobilenet_v2_fpnlite_640x640_240000s\ --output_directory .\exported-models\my_mobilenet_v2_fpnlite_640x640_240000steps
+```
+
+```python
+python export_tflite_graph_tf2.py --pipeline_config_path ./exported-models/my_mobilenet_v2_fpnlite_640x640_240000steps/pipeline.config --trained_checkpoint_dir ./exported-models/my_mobilenet_v2_fpnlite_640x640_240000steps/checkpoint/ --output_directory ./exported-models/my_mobilenet_v2_fpnlite_640x640_240000s_tfgraph
+```
+
+```python
+import tensorflow as tf
+
+# Convert the model
+converter = tf.lite.TFLiteConverter.from_saved_model('exported-models/my_mobilenet_v2_fpnlite_640x640_240000s_tfgraph/saved_model/') # path to the SavedModel directory
+# enable TensorFlow ops along with enable TensorFlow Lite ops
+#converter.target_spec.supported_ops = [ tf.lite.OpsSet.TFLITE_BUILTINS, tf.lite.OpsSet.SELECT_TF_OPS ]
+tflite_model = converter.convert()
+
+# Save the model.
+with open('mobilenet_v2_fpnlite_202303017.tflite', 'wb') as f:
+  f.write(tflite_model)
+```
+
+```python
+python metadata_writer_for_object_detection.py --model_file= mobilenet_v2_fpnlite_20230317.tflite --label_file= RPI_label --export_directory= ./exported-tflite
+```
+
+<p>A diagram of the model formation is illustrated below. </p>
 
 ![image](https://user-images.githubusercontent.com/109242797/223389130-d4967d8a-3bf7-415a-a43b-5507885bc2d9.png)
-
-python .\exporter_main_v2.py --input_ty
-pe image_tensor --pipeline_config_path .\models\my_mobilenet_v2_fpnlite_640x640_240000s\pipeline.config --trained
-_checkpoint_dir .\models\my_mobilenet_v2_fpnlite_640x640_240000s\ --output_directory .\exported-models\my_mobilen
-et_v2_fpnlite_640x640_240000steps
-
-python export_tflite_graph_tf2.py --pip
-eline_config_path ./exported-models/my_mobilenet_v2_fpnlite_640x640_240000steps/pipeline.config --trained_checkpo
-int_dir ./exported-models/my_mobilenet_v2_fpnlite_640x640_240000steps/checkpoint/ --output_directory ./exported-m
-odels/my_mobilenet_v2_fpnlite_640x640_240000s_tfgraph
-
-tflite_convert.py
-
-python metadata_writer_for_object_detec
-tion.py --model_file= mobilenet_v2_fpnlite_20230317.tflite --label_file= RPI_label --export_directory= ./exported
--tflite
-
 
 
 
