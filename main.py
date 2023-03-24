@@ -68,7 +68,7 @@ while True:
             # Time priority to show image for operator
             show_image(drawing, image_with_judgement)
             if defects.detections:
-                # Background action to send detection info to localSQL and later API
+                # Background action to send detection info to localSQL and select last 100 sql rows
                 detection_json = seal_pin.create_detections_json(defects.detections)
                 seal_pin.report_detection_to_local_sql(detection_json)
                 detections_json = seal_pin.select_top100_detections_from_local_sql()
@@ -78,7 +78,7 @@ while True:
                 except:
                     pass
                 else:
-                    # DELETE TOP 100 from local sql cause it was reported to API
+                    # DELETE TOP 100 from local sql cause it was reported to APIxx
                     seal_pin.delete_top100_detections_from_local_sql()
 
     stop = time.time()

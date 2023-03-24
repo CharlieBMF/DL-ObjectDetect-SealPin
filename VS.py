@@ -13,7 +13,14 @@ import requests
 import psycopg2 as pg2
 import pandas as pd
 import json
-import numpy as np
+from smbprotocol.connection import Connection
+from smbprotocol.session import Session
+from smbprotocol.tree import TreeConnect
+import uuid
+from smbclient import listdir, mkdir, register_session, rmdir, scandir, copyfile
+import smbclient
+import urllib3
+from PIL import Image
 
 
 def time_wrapper(func):
@@ -176,7 +183,35 @@ class VisionSystem:
         image_name = self.define_raw_photo_name()
         self.define_directory()
         image_path = self.image_directory + '/' + image_name
-        cv2.imwrite(image_path, image)
+
+        smbclient.ClientConfig(username='pythones3', password='Daicel@DSSE2023')
+        with smbclient.open_file(r"\\192.168.200.101\vp_es3_ai\SEALPIN\test.jpg", mode="w") as fd:
+            fd.write(Image.fromarray(image))
+
+        director = urllib3.build_opener()
+        #cv2.imwrite(image_path, image)
+
+        # connection = Connection(uuid.uuid4(), '192.168.200.101')
+        # connection.connect()
+        # session = Session(connection, 'pythones3', 'Daicel@DSSE2023')
+        # session.connect()
+        # server = '192.168.200.101'
+        # share = r"\\%s\vp_es3_ai\SEALPIN" % server
+        # print('SHARE:', share)
+        # tree = TreeConnect(session, r'\\192.168.200.101\vp_es3_ai')
+        # tree.connect()
+
+
+        #register_session("192.168.200.101", username="pythones3", password="Daicel@DSSE2023")
+        #copyfile(r'\\home\pi\Scripts\7116img.jpg', r'\\192.168.200.101\vp_es3_ai\SEALPIN')
+
+
+       # print(os.listdir(r"\192.168.200.101\vp_es3_ai\SEALPIN"))
+       #  fh = smbclient.open_file(r"\\192.168.200.101\vp_es3_ai\SEALPIN\test.jpg", data=image)
+       #  fh.close()
+        #cv2.imwrite(r'\\192.168.200.101\vp_es3_ai\SEALPIN\test.jpg', image)
+        #for filename in listdir(r"\\192.168.200.101\vp_es3_ai\SEALPIN"):
+         #   print(filename)
 
     def detect_defects(self, image):
         rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
@@ -240,6 +275,7 @@ class VisionSystem:
     def delete_top100_detections_from_local_sql(self):
         query = "DELETE FROM detections WHERE ctid IN (SELECT ctid FROM detections ORDER BY time_stamp LIMIT 100)"
         self.commit_query_to_local_sql(query)
+
 
     @staticmethod
     def select_top100_detections_from_local_sql():
