@@ -41,7 +41,8 @@ while True:
     # Detect trigger value
     start = time.time()
     trigger_value = seal_pin.read_photo_trigger()
-    #seal_pin.define_photo_number()
+    print('Trigger value:', trigger_value)
+
     #####if trigger_value != seal_pin.trigger_value:
     if True:
         # Detected trigger value change
@@ -49,6 +50,7 @@ while True:
         #####if seal_pin.trigger_value == 1:
         if True:
             # Detected trigger value change from 0 to 1, photo has to be executed
+            #seal_pin.define_photo_number()
             image = np.empty((seal_pin.image_width, seal_pin.image_height, 3), dtype=np.uint8)
             seal_pin.camera.capture(image, 'bgr')
             # Read Barcode
@@ -75,11 +77,20 @@ while True:
                 try:
                     # Report detection to api if accessible
                     seal_pin.report_detection_to_api(detections_json)
+                    print('DONE REPORT TO API')
                 except:
                     pass
                 else:
                     # DELETE TOP 100 from local sql cause it was reported to APIxx
+                    print('TRYING DELETE TOP100')
                     seal_pin.delete_top100_detections_from_local_sql()
+                    print('DONE DELETE TOP100')
+            try:
+                seal_pin.copy_images_to_samba_server()
+            except:
+                pass
+            else:
+                seal_pin.delete_images_from_local_SDCard()
 
     stop = time.time()
     print('time', stop-start)

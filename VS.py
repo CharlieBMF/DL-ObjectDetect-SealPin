@@ -1,3 +1,5 @@
+import shutil
+
 import pymcprotocol
 from picamera import PiCamera
 import cv2
@@ -13,14 +15,7 @@ import requests
 import psycopg2 as pg2
 import pandas as pd
 import json
-from smbprotocol.connection import Connection
-from smbprotocol.session import Session
-from smbprotocol.tree import TreeConnect
-import uuid
-from smbclient import listdir, mkdir, register_session, rmdir, scandir, copyfile
 import smbclient
-import urllib3
-from PIL import Image
 
 
 def time_wrapper(func):
@@ -58,7 +53,13 @@ class VisionSystem:
         self.set_camera_resolution()
         self.detection_model = self.initialize_model(model_file_name, score_min_value, category_names)
         self.first_image = True
-        self.image_directory = '/home/pi/Scripts/' + datetime.now().strftime('%Y-%m-%d')
+        self.local_image_directory = '/home/pi/Scripts/' + datetime.now().strftime('%Y-%m-%d')
+        if not os.path.isdir(self.local_image_directory):
+            os.mkdir(self.local_image_directory)
+        smbclient.register_session("192.168.200.101", username="pythones3", password="Daicel@DSSE2023")
+        self.samba_image_directory = '\\\\192.168.200.101\\vp_es3_ai\SEALPIN\\' + datetime.now().strftime("%Y-%m-%d")
+        if not smbclient.path.isdir(self.samba_image_directory):
+            smbclient.mkdir(self.samba_image_directory)
 
     def define_machine_root(self):
         pymc3e = pymcprotocol.Type3E()
@@ -170,48 +171,37 @@ class VisionSystem:
             jpg_name = self.barcode_value + 'img_defects.jpg'
         return jpg_name
 
-    def define_directory(self):
-        if not os.path.isdir(self.image_directory):
-            os.mkdir(self.image_directory)
-        if not self.image_directory.endswith(datetime.now().strftime('%Y-%m-%d')):
-            new_directory = self.image_directory[:-10] + datetime.now().strftime('%Y-%m-%d')
-            if not os.path.isdir(new_directory):
-                os.mkdir(new_directory)
-            self.image_directory = new_directory
+    def define_directories(self):
+        if not self.local_image_directory.endswith(datetime.now().strftime('%Y-%m-%d')):
+            new_local_directory = self.local_image_directory[:-10] + datetime.now().strftime('%Y-%m-%d')
+            if not os.path.isdir(new_local_directory):
+                os.mkdir(new_local_directory)
+            self.local_image_directory = new_local_directory
+            new_samba_directory = self.samba_image_directory[:-10] + datetime.now().strftime('%Y-%m-%d')
+            if not smbclient.path.isdir(new_samba_directory):
+                smbclient.mkdir(new_samba_directory)
+            self.samba_image_directory = new_samba_directory
 
     def save_raw_image(self, image):
         image_name = self.define_raw_photo_name()
-        self.define_directory()
-        image_path = self.image_directory + '/' + image_name
+        self.define_directories()
+        image_path = self.local_image_directory + '/' + image_name
+        cv2.imwrite(image_path, image)
 
-        smbclient.ClientConfig(username='pythones3', password='Daicel@DSSE2023')
-        with smbclient.open_file(r"\\192.168.200.101\vp_es3_ai\SEALPIN\test.jpg", mode="w") as fd:
-            fd.write(Image.fromarray(image))
+    def copy_images_to_samba_server(self):
+        list_of_images_path = glob.glob(self.local_image_directory + '/*.jpg')
+        list_of_images = [os.path.basename(x) for x in list_of_images_path]
+        list_of_images_tuple = [(list_of_images_path[i], list_of_images[i]) for i in range(0, len(list_of_images_path))]
+        for path, name in list_of_images_tuple:
+            print(path, name)
+            with open(path, 'rb') as local:
+                with smbclient.open_file(self.samba_image_directory + '\\' + name, "wb") as remote:
+                    shutil.copyfileobj(local, remote)
 
-        director = urllib3.build_opener()
-        #cv2.imwrite(image_path, image)
-
-        # connection = Connection(uuid.uuid4(), '192.168.200.101')
-        # connection.connect()
-        # session = Session(connection, 'pythones3', 'Daicel@DSSE2023')
-        # session.connect()
-        # server = '192.168.200.101'
-        # share = r"\\%s\vp_es3_ai\SEALPIN" % server
-        # print('SHARE:', share)
-        # tree = TreeConnect(session, r'\\192.168.200.101\vp_es3_ai')
-        # tree.connect()
-
-
-        #register_session("192.168.200.101", username="pythones3", password="Daicel@DSSE2023")
-        #copyfile(r'\\home\pi\Scripts\7116img.jpg', r'\\192.168.200.101\vp_es3_ai\SEALPIN')
-
-
-       # print(os.listdir(r"\192.168.200.101\vp_es3_ai\SEALPIN"))
-       #  fh = smbclient.open_file(r"\\192.168.200.101\vp_es3_ai\SEALPIN\test.jpg", data=image)
-       #  fh.close()
-        #cv2.imwrite(r'\\192.168.200.101\vp_es3_ai\SEALPIN\test.jpg', image)
-        #for filename in listdir(r"\\192.168.200.101\vp_es3_ai\SEALPIN"):
-         #   print(filename)
+    def delete_images_from_local_SDCard(self):
+        list_of_images_path = glob.glob(self.local_image_directory + '/*.jpg')
+        for image in list_of_images_path:
+            os.remove(image)
 
     def detect_defects(self, image):
         rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
@@ -221,7 +211,7 @@ class VisionSystem:
 
     def save_image_with_defects(self, image_with_defect):
         image_name = self.define_defects_photo_name()
-        image_path = self.image_directory + '/' + image_name
+        image_path = self.local_image_directory + '/' + image_name
         cv2.imwrite(image_path, image_with_defect)
 
     def add_defects_to_raw_image(self, defects, image):
@@ -276,6 +266,20 @@ class VisionSystem:
         query = "DELETE FROM detections WHERE ctid IN (SELECT ctid FROM detections ORDER BY time_stamp LIMIT 100)"
         self.commit_query_to_local_sql(query)
 
+    def define_photo_number(self):
+        list_of_files = smbclient.listdir(self.samba_image_directory)
+        list_of_images = [image for image in list_of_files if image.endswith('.jpg')]
+        print('SELF DIRECTORY:', self.samba_image_directory)
+        print('FILES IN DIRECTORY:', list_of_images)
+        if list_of_images:
+            list_of_int = [int(x.replace('img.jpg', '').replace('img_defects.jpg', '')) for x in list_of_images]
+            max_number = max(list_of_int)
+            number = str(max_number + 1)
+        else:
+            number = str(1)
+        print('Actual number...', number)
+        return number
+
 
     @staticmethod
     def select_top100_detections_from_local_sql():
@@ -299,17 +303,9 @@ class VisionSystem:
     def report_detection_to_api(json_obj):
         print('FINAL JSON TO API:', json_obj)
         response = requests.post('http://hamster.dsse.local/Vision/SendData', json=json_obj)
+        print('Response text:', response.text)
         print('Response succes', json.loads(response.text)["sucess"])
         if not json.loads(response.text)["sucess"]:
             raise Exception('Sorry response from API is not succesfull')
 
-    @staticmethod
-    def define_photo_number():
-        list_of_files = glob.glob('*img.jpg')
-        latest_file = max(list_of_files, key=os.path.getctime)
-        number = str(
-            int
-            (latest_file.replace('img.jpg', '')) + 1)
-        print('Actual number...', number)
-        return number
 
