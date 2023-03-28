@@ -1,14 +1,22 @@
-import time
+"""
+Main module to initialize vision system and run loop to start functionality
+"""
 
 from VS import VisionSystem
 from conf import machines_names
-from datetime import datetime
 import matplotlib.pyplot as plt
 import numpy as np
 import cv2
+import time
 
 
 def initialize_plotting():
+    """
+    Configure plot parameters to show photo for operator on line
+
+    :return: plot with configured parameters and empty numpy array
+    """
+
     wm = plt.get_current_fig_manager()
     wm.full_screen_toggle()
     plt.axis('off')
@@ -19,6 +27,14 @@ def initialize_plotting():
 
 
 def show_image(displayed_plot, image_to_show):
+    """
+    Use to plot image
+
+    :param displayed_plot: configured drawing where to show a new image as ion
+    :param image_to_show: image processed by defect detection
+    :return: None
+    """
+
     displayed_plot.set_data(cv2.cvtColor(image_to_show, cv2.COLOR_BGR2RGB))
     plt.draw()
     plt.pause(1)
@@ -41,14 +57,13 @@ while True:
     # Detect trigger value
     start = time.time()
     trigger_value = seal_pin.read_photo_trigger()
-    print('Trigger value:', trigger_value)
-
-    #####if trigger_value != seal_pin.trigger_value:
-    if True:
+    #print('Trigger value:', trigger_value)
+    if trigger_value != seal_pin.trigger_value:
+    ##if True:
         # Detected trigger value change
         seal_pin.trigger_value = trigger_value
-        #####if seal_pin.trigger_value == 1:
-        if True:
+        if seal_pin.trigger_value == 1:
+        ##if True:
             # Detected trigger value change from 0 to 1, photo has to be executed
             #seal_pin.define_photo_number()
             image = np.empty((seal_pin.image_width, seal_pin.image_height, 3), dtype=np.uint8)
@@ -70,8 +85,10 @@ while True:
             # Time priority to show image for operator
             show_image(drawing, image_with_judgement)
             if defects.detections:
+                stop = time.time()
+                detection_time = stop - start
                 # Background action to send detection info to localSQL and select last 100 sql rows
-                detection_json = seal_pin.create_detections_json(defects.detections)
+                detection_json = seal_pin.create_detections_json(defects.detections, detection_time)
                 seal_pin.report_detection_to_local_sql(detection_json)
                 detections_json = seal_pin.select_top100_detections_from_local_sql()
                 try:
@@ -86,12 +103,11 @@ while True:
                     seal_pin.delete_top100_detections_from_local_sql()
                     print('DONE DELETE TOP100')
             try:
+                # Copy images from SD Card to samba server
                 seal_pin.copy_images_to_samba_server()
+                seal_pin.samba_connection_available = True
             except:
-                pass
+                seal_pin.samba_connection_available = False
             else:
+                # Delete images if pass
                 seal_pin.delete_images_from_local_SDCard()
-
-    stop = time.time()
-    print('time', stop-start)
-    time.sleep(5)
