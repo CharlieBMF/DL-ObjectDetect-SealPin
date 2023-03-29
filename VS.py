@@ -1,3 +1,4 @@
+
 """
 Vision system module. Contains all the methods necessary for the vision system to function
 """
@@ -76,6 +77,7 @@ class VisionSystem:
         self.machine = self.define_machine_root()
         self.trigger_address = addresses['Trigger_address']
         self.barcode_address = addresses['Barcode_address']
+        self.barcode_read_finished = addresses['Barcode_read_finished']
         self.image_width = image_width
         self.image_height = image_height
         self.trigger_value = 0
@@ -159,6 +161,13 @@ class VisionSystem:
         self.close_connection()
         return trigger_value[0]
 
+    def read_2d_reader_finish_work(self):
+        self.connect()
+        barcode_read_finished_status = self.read_bits(head=self.barcode_read_finished)
+        self.close_connection()
+        print('barcode_read_finished_status', barcode_read_finished_status[0])
+        return barcode_read_finished_status[0]
+
     @time_wrapper
     def read_barcode_value(self):
         try:
@@ -211,7 +220,7 @@ class VisionSystem:
     def define_photo_number(self):
         if self.samba_connection_available:
             list_of_files = smbclient.listdir(self.samba_image_directory)
-            list_of_images = [image for image in list_of_files if image.endswith('.jpg')]
+            list_of_images = [image for image in list_of_files if image.endswith('img.jpg')]
             print('SELF DIRECTORY:', self.samba_image_directory)
             print('FILES IN DIRECTORY:', list_of_images)
             if list_of_images:
@@ -253,15 +262,6 @@ class VisionSystem:
         print('self.barcode value ok read', self.barcode_value_OK_read)
         if self.barcode_value_OK_read:
             jpg_name = self.barcode_value + '.jpg'
-            # if os.path.isfile(jpg_name):
-            #     for i in range(1, 1001):
-            #         temp_jpg_name = self.barcode_value + '_' + str(i) + '.jpg'
-            #         if os.path.isfile(temp_jpg_name):
-            #             continue
-            #         else:
-            #             jpg_name = self.barcode_value + '_' + str(i - 1) + '_defects.jpg'
-            # else:
-            #     jpg_name = self.barcode_value + '_defects.jpg'
             if smbclient.path.isfile(os.path.join(self.samba_image_directory, jpg_name)):
                 for i in range(1, 1001):
                     temp_jpg_name = self.barcode_value + '_' + str(i) + '.jpg'

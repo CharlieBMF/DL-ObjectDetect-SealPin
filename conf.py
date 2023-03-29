@@ -8,8 +8,10 @@ machines_names = {
             'port': 40021,
             'address':
                 {
-                    'Trigger_address': 'M765',
-                    'Barcode_address': 'D654'
+                    'Trigger_address': 'M766',
+                    'Barcode_read_finished': 'M767',
+                    'Barcode_address': 'D654',
+
                 },
             'target_network': None,
             'plc_id_in_target_network': None

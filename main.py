@@ -39,7 +39,7 @@ def show_image(displayed_plot, image_to_show):
 def wait_until_barcode(timeout, vision_system):
     max_wait_time = time.time() + timeout
     while time.time() < max_wait_time:
-        if vision_system.read_2d_reader_finish_work():
+        if vision_system.read_2d_reader_finish_work() == 1:
             break
 
 
@@ -72,7 +72,7 @@ while True:
             image = np.empty((seal_pin.image_width, seal_pin.image_height, 3), dtype=np.uint8)
             seal_pin.camera.capture(image, 'bgr')
             # Read Barcode
-            wait_until_barcode(5, seal_pin)
+            wait_until_barcode(3, seal_pin)
             seal_pin.read_barcode_value()
             # Capture photo
             seal_pin.save_raw_image(image)
