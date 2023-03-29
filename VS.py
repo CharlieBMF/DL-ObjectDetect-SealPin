@@ -1,3 +1,7 @@
+"""
+Vision system module. Contains all the methods necessary for the vision system to function
+"""
+
 from picamera import PiCamera
 from tflite_support.task import core
 from tflite_support.task import processor
@@ -18,22 +22,50 @@ import smbclient
 
 
 def time_wrapper(func):
+    """
+    Wrapper for showing function name and time. Debbuging & controlling
+    :param func: any function
+    :return: wrapped function
+    """
     def wrap(*args, **kwargs):
+        print('Starting... ', func.__name__)
         start = time.time()
         result = func(*args, **kwargs)
         end = time.time()
-        if end - start > 0.1:
-            print(f'Func {func.__name__} Time: {end - start}')
+        print('Finished.. ', func.__name__)
+        print(f'{func.__name__} TIME (sec) {end-start}\n')
         return result
-
     return wrap
 
 
 class VisionSystem:
+    """Class representing vision system"""
 
     def __init__(self, id_line: int, id_machine: int, name: str, ip: str, port: int, addresses: dict, image_width: int,
                  image_height: int, model_file_name: str, score_min_value: float, category_names: list,
                  target_network=None, plc_id_in_target_network=None, ):
+        """
+        Init for class
+        :param id_line: id of the line on which the RaspberryPi used as a vision system is mounted
+        :param id_machine: id of the machine on which the RaspberryPi used as a vision system is mounted
+        :param name: name of the machine on which the RaspberryPi used as a vision system is mounted
+        :param ip: ip the address at which the machine (PLC) to which the RaspberryPi is connected as a vision system
+         is defined
+        :param port: open port for communication between the RaspberryPi and the machine
+        :param addresses: addresses used for communication between the RaspberryPi and the machine on which it is
+         installed (PLC)
+        :param image_width: width of the image taken by the vision system
+        :param image_height: height of the image taken by the vision system
+        :param model_file_name: name of the tflight file that is loaded as a model
+        :param score_min_value: the minimum value for which the detection is detected
+        :param category_names: list of category names to be detected by the model
+        :param target_network: it is possible to communicate using other communication protocols to other machines
+         on the line. If the vision system is connected to PLC, it is possible to perform routing on the PLC
+          for a different network number and communicate with another PLC. This number determines to which network
+           number routing should be performed
+        :param plc_id_in_target_network:
+        """
+
         self.id_line = id_line
         self.id_machine = id_machine
         self.name = name
@@ -53,11 +85,14 @@ class VisionSystem:
         self.set_camera_resolution()
         self.detection_model = self.initialize_model(model_file_name, score_min_value, category_names)
         self.first_image = True
-        self.local_image_directory = '/home/pi/Scripts/' + datetime.now().strftime('%Y-%m-%d')
+        self.local_image_directory = os.path.join('/home/pi/Scripts', datetime.now().strftime('%Y-%m-%d'))
         if not os.path.isdir(self.local_image_directory):
             os.mkdir(self.local_image_directory)
+        smbclient.ClientConfig(username="pythones3", password="Daicel@DSSE2023")
         smbclient.register_session("192.168.200.101", username="pythones3", password="Daicel@DSSE2023")
-        self.samba_image_directory = '\\\\192.168.200.101\\vp_es3_ai\SEALPIN\\' + datetime.now().strftime("%Y-%m-%d")
+        self.samba_image_directory = os.path.join(
+            '\\\\192.168.200.101\\vp_es3_ai\SEALPIN', datetime.now().strftime("%Y-%m-%d")
+        )
         if not smbclient.path.isdir(self.samba_image_directory):
             smbclient.mkdir(self.samba_image_directory)
         self.samba_connection_available = self.check_samba_connection_availability()
@@ -106,13 +141,14 @@ class VisionSystem:
         detector = vision.ObjectDetector.create_from_options(options)
         return detector
 
+    @time_wrapper
     def define_directories(self):
         if not self.local_image_directory.endswith(datetime.now().strftime('%Y-%m-%d')):
-            new_local_directory = self.local_image_directory[:-10] + datetime.now().strftime('%Y-%m-%d')
+            new_local_directory = os.path.join(self.local_image_directory[:-10], datetime.now().strftime('%Y-%m-%d'))
             if not os.path.isdir(new_local_directory):
                 os.mkdir(new_local_directory)
             self.local_image_directory = new_local_directory
-            new_samba_directory = self.samba_image_directory[:-10] + datetime.now().strftime('%Y-%m-%d')
+            new_samba_directory = os.path.join(self.samba_image_directory[:-10], datetime.now().strftime('%Y-%m-%d'))
             if not smbclient.path.isdir(new_samba_directory):
                 smbclient.mkdir(new_samba_directory)
             self.samba_image_directory = new_samba_directory
@@ -123,6 +159,7 @@ class VisionSystem:
         self.close_connection()
         return trigger_value[0]
 
+    @time_wrapper
     def read_barcode_value(self):
         try:
             self.connect()
@@ -149,6 +186,7 @@ class VisionSystem:
             self.barcode_value_OK_read = True
         print('Final barcode:', self.barcode_value)
 
+    @time_wrapper
     def define_raw_photo_name(self):
         print('self.barcode_value_ok_read:', self.barcode_value_OK_read)
         if self.barcode_value_OK_read:
@@ -169,6 +207,7 @@ class VisionSystem:
         print('RAW JPG Name:', jpg_name)
         return jpg_name
 
+    @time_wrapper
     def define_photo_number(self):
         if self.samba_connection_available:
             list_of_files = smbclient.listdir(self.samba_image_directory)
@@ -190,36 +229,54 @@ class VisionSystem:
         print('Actual number...', number)
         return number
 
+    @time_wrapper
     def save_raw_image(self, image):
         image_name = self.define_raw_photo_name()
         self.define_directories()
-        image_path = self.local_image_directory + '/' + image_name
+        image_path = os.path.join(self.local_image_directory, image_name)
         cv2.imwrite(image_path, image)
 
+    @time_wrapper
     def detect_defects(self, image):
         rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         input_tensor = vision.TensorImage.create_from_array(rgb_image)
         detection_result = self.detection_model.detect(input_tensor)
         return detection_result
 
+    @time_wrapper
     def add_ok_label_to_raw_image(self, image):
         image_without_defect = utils.visualize_ok_labels(image, w=self.image_width, h=self.image_height)
         return image_without_defect
 
+    @time_wrapper
     def define_defects_photo_name(self):
+        print('self.barcode value ok read', self.barcode_value_OK_read)
         if self.barcode_value_OK_read:
             jpg_name = self.barcode_value + '.jpg'
-            if os.path.isfile(jpg_name):
+            # if os.path.isfile(jpg_name):
+            #     for i in range(1, 1001):
+            #         temp_jpg_name = self.barcode_value + '_' + str(i) + '.jpg'
+            #         if os.path.isfile(temp_jpg_name):
+            #             continue
+            #         else:
+            #             jpg_name = self.barcode_value + '_' + str(i - 1) + '_defects.jpg'
+            # else:
+            #     jpg_name = self.barcode_value + '_defects.jpg'
+            if smbclient.path.isfile(os.path.join(self.samba_image_directory, jpg_name)):
                 for i in range(1, 1001):
                     temp_jpg_name = self.barcode_value + '_' + str(i) + '.jpg'
-                    if os.path.isfile(temp_jpg_name):
+                    if smbclient.path.isfile(os.path.join(self.samba_image_directory, temp_jpg_name)):
                         continue
                     else:
                         jpg_name = self.barcode_value + '_' + str(i - 1) + '_defects.jpg'
+                        break
+            else:
+                jpg_name = self.barcode_value + '_defects.jpg'
         else:
             jpg_name = self.barcode_value + 'img_defects.jpg'
         return jpg_name
 
+    @time_wrapper
     def add_defects_to_raw_image(self, defects, image):
         for det in defects.detections:
             for cat in det.categories:
@@ -227,9 +284,11 @@ class VisionSystem:
         image_with_defects = utils.visualize_defects(image, defects, w=self.image_width, h=self.image_height)
         return image_with_defects
 
+    @time_wrapper
     def save_image_with_defects(self, image_with_defect):
         image_name = self.define_defects_photo_name()
-        image_path = self.local_image_directory + '/' + image_name
+        image_path = os.path.join(self.local_image_directory, image_name)
+        print('defect image name, path:', image_name, image_path)
         cv2.imwrite(image_path, image_with_defect)
 
     def create_detections_json(self, detections, detection_time):
@@ -262,6 +321,7 @@ class VisionSystem:
         }
         return detection_json
 
+    @time_wrapper
     def report_detection_to_local_sql(self, json_obj):
         detection_quotes_converted = str(json_obj).replace("'", '"')
         query = f"INSERT INTO detections(detecion_json, time_stamp) VALUES" \
@@ -273,6 +333,7 @@ class VisionSystem:
         query = "DELETE FROM detections WHERE ctid IN (SELECT ctid FROM detections ORDER BY time_stamp LIMIT 100)"
         self.commit_query_to_local_sql(query)
 
+    @time_wrapper
     def copy_images_to_samba_server(self):
         list_of_images_path = glob.glob(self.local_image_directory + '/*.jpg')
         list_of_images = [os.path.basename(x) for x in list_of_images_path]
@@ -283,6 +344,7 @@ class VisionSystem:
                 with smbclient.open_file(self.samba_image_directory + '\\' + name, "wb") as remote:
                     shutil.copyfileobj(local, remote)
 
+    @time_wrapper
     def delete_images_from_local_SDCard(self):
         list_of_images_path = glob.glob(self.local_image_directory + '/*.jpg')
         for image in list_of_images_path:
@@ -294,6 +356,7 @@ class VisionSystem:
             return True
         else:
             return False
+
 
     @staticmethod
     def select_top100_detections_from_local_sql():

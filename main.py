@@ -13,10 +13,8 @@ import time
 def initialize_plotting():
     """
     Configure plot parameters to show photo for operator on line
-
     :return: plot with configured parameters and empty numpy array
     """
-
     wm = plt.get_current_fig_manager()
     wm.full_screen_toggle()
     plt.axis('off')
@@ -29,15 +27,20 @@ def initialize_plotting():
 def show_image(displayed_plot, image_to_show):
     """
     Use to plot image
-
     :param displayed_plot: configured drawing where to show a new image as ion
     :param image_to_show: image processed by defect detection
     :return: None
     """
-
     displayed_plot.set_data(cv2.cvtColor(image_to_show, cv2.COLOR_BGR2RGB))
     plt.draw()
     plt.pause(1)
+
+
+def wait_until_barcode(timeout, vision_system):
+    max_wait_time = time.time() + timeout
+    while time.time() < max_wait_time:
+        if vision_system.read_2d_reader_finish_work():
+            break
 
 
 drawing = initialize_plotting()
@@ -69,6 +72,7 @@ while True:
             image = np.empty((seal_pin.image_width, seal_pin.image_height, 3), dtype=np.uint8)
             seal_pin.camera.capture(image, 'bgr')
             # Read Barcode
+            wait_until_barcode(5, seal_pin)
             seal_pin.read_barcode_value()
             # Capture photo
             seal_pin.save_raw_image(image)
