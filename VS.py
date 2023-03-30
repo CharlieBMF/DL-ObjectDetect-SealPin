@@ -205,6 +205,7 @@ class VisionSystem:
                 for i in range(1, 1001):
                     print('i:', i)
                     temp_jpg_name = self.barcode_value + '_' + str(i) + '.jpg'
+                    print('temp_jpg_name', temp_jpg_name)
                     if os.path.isfile(temp_jpg_name):
                         continue
                     else:
@@ -261,14 +262,17 @@ class VisionSystem:
     def define_defects_photo_name(self):
         print('self.barcode value ok read', self.barcode_value_OK_read)
         if self.barcode_value_OK_read:
-            jpg_name = self.barcode_value + '.jpg'
+            jpg_name = self.barcode_value + '_defects.jpg'
+            print('jpg defect name:', jpg_name)
+            print('jpg defect path', os.path.join(self.samba_image_directory, jpg_name))
+            print(smbclient.path.isfile(os.path.join(self.samba_image_directory, jpg_name)))
             if smbclient.path.isfile(os.path.join(self.samba_image_directory, jpg_name)):
                 for i in range(1, 1001):
-                    temp_jpg_name = self.barcode_value + '_' + str(i) + '.jpg'
+                    temp_jpg_name = self.barcode_value + '_' + str(i) + '_defects.jpg'
                     if smbclient.path.isfile(os.path.join(self.samba_image_directory, temp_jpg_name)):
                         continue
                     else:
-                        jpg_name = self.barcode_value + '_' + str(i - 1) + '_defects.jpg'
+                        jpg_name = temp_jpg_name
                         break
             else:
                 jpg_name = self.barcode_value + '_defects.jpg'
