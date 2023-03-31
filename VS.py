@@ -169,30 +169,40 @@ class VisionSystem:
         return barcode_read_finished_status[0]
 
     @time_wrapper
-    def read_barcode_value(self):
-        try:
-            self.connect()
-            barcode_decimal_list = self.read_words(head=self.barcode_address, size=6)
-            self.close_connection()
-            print('Barcode:', barcode_decimal_list)
-            barcode_binary = [bin(i).replace('b', '') for i in barcode_decimal_list]
-            barcode_binary[0] = barcode_binary[0][1:]
-            barcode_binary[1] = barcode_binary[1][1:]
-            print('Barcode:', barcode_binary)
-            barcode_ASCII_separated = list(map(
-                lambda x: str(chr(int(x[0:7], 2)) + chr(int(x[7:16], 2))), barcode_binary[:-1]
-            ))
-            barcode_ASCII_swapped = list(map(lambda x: str(x[1] + x[0]), barcode_ASCII_separated))
-            barcode_ASCII_swapped += chr(int(barcode_binary[-1], 2))
-            print(barcode_ASCII_swapped)
-            self.barcode_value = ''.join(barcode_ASCII_swapped)
-            if self.barcode_value.startswith('ER'):
-                raise Exception('Error read in barcode number')
-        except:
+    def read_barcode_value(self, timeout):
+        barcode_send_OK_signal = False
+        max_wait_time = time.time() + timeout
+        while time.time() < max_wait_time:
+            if self.read_2d_reader_finish_work() == 1:
+                barcode_send_OK_signal = True
+                break
+        if barcode_send_OK_signal:
+            try:
+                self.connect()
+                barcode_decimal_list = self.read_words(head=self.barcode_address, size=6)
+                self.close_connection()
+                print('Barcode:', barcode_decimal_list)
+                barcode_binary = [bin(i).replace('b', '') for i in barcode_decimal_list]
+                barcode_binary[0] = barcode_binary[0][1:]
+                barcode_binary[1] = barcode_binary[1][1:]
+                print('Barcode:', barcode_binary)
+                barcode_ASCII_separated = list(map(
+                    lambda x: str(chr(int(x[0:7], 2)) + chr(int(x[7:16], 2))), barcode_binary[:-1]
+                ))
+                barcode_ASCII_swapped = list(map(lambda x: str(x[1] + x[0]), barcode_ASCII_separated))
+                barcode_ASCII_swapped += chr(int(barcode_binary[-1], 2))
+                print(barcode_ASCII_swapped)
+                self.barcode_value = ''.join(barcode_ASCII_swapped)
+                if self.barcode_value.startswith('ER'):
+                    raise Exception('Error read in barcode number')
+            except:
+                self.barcode_value = self.define_photo_number()
+                self.barcode_value_OK_read = False
+            else:
+                self.barcode_value_OK_read = True
+        else:
             self.barcode_value = self.define_photo_number()
             self.barcode_value_OK_read = False
-        else:
-            self.barcode_value_OK_read = True
         print('Final barcode:', self.barcode_value)
 
     @time_wrapper
@@ -360,7 +370,6 @@ class VisionSystem:
             return True
         else:
             return False
-
 
     @staticmethod
     def select_top100_detections_from_local_sql():
