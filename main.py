@@ -53,7 +53,7 @@ seal_pin = VisionSystem(id_line=machines_names['Gas_Generant']['id_line'],
                         image_width=1024,
                         image_height=1024,
                         model_file_name='mobilenet_v2_fpnlite_202303017.tflite',
-                        score_min_value=0.30,
+                        score_min_value=0.40,
                         category_names=["PR", "QA"])
 
 while True:

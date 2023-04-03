@@ -30,11 +30,8 @@ def visualize_defects(
   Returns:
     Image with bounding boxes.
   """
-    print(image)
-
     rotated_image = np.rot90(image, -1)
     rotated_image = np.ascontiguousarray(rotated_image, dtype=np.uint8)
-    print(rotated_image)
     for detection in detection_result.detections:
         # Draw bounding_box
         bbox = detection.bounding_box

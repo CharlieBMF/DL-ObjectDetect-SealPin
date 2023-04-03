@@ -175,6 +175,7 @@ class VisionSystem:
         while time.time() < max_wait_time:
             if self.read_2d_reader_finish_work() == 1:
                 barcode_send_OK_signal = True
+                time.sleep(0.1)
                 break
         if barcode_send_OK_signal:
             try:
@@ -211,16 +212,18 @@ class VisionSystem:
         if self.barcode_value_OK_read:
             '''This means in variable barcode_value is value like: SC4T3319258'''
             jpg_name = self.barcode_value + '.jpg'
-            if os.path.isfile(jpg_name):
+            if smbclient.path.isfile(os.path.join(self.samba_image_directory, jpg_name)):
                 for i in range(1, 1001):
                     print('i:', i)
                     temp_jpg_name = self.barcode_value + '_' + str(i) + '.jpg'
                     print('temp_jpg_name', temp_jpg_name)
-                    if os.path.isfile(temp_jpg_name):
+                    if smbclient.path.isfile(os.path.join(self.samba_image_directory, temp_jpg_name)):
                         continue
                     else:
                         jpg_name = temp_jpg_name
                         break
+            else:
+                jpg_name = self.barcode_value + '.jpg'
         else:
             '''This means in variable barcode_value is raw number like: 1521 '''
             jpg_name = self.barcode_value + 'img.jpg'
