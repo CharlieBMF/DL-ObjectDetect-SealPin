@@ -211,7 +211,7 @@ with open('mobilenet_v2_fpnlite_202303017.tflite', 'wb') as f:
 ```
 
 ```python
-python metadata_writer_for_object_detection.py --model_file= mobilenet_v2_fpnlite_20230317.tflite --label_file= RPI_label --export_directory= ./exported-tflite
+python metadata_writer_for_object_detection.py --model_file mobilenet_v2_fpnlite_20230404.tflite --label_file RPI_label.txt --export_directory ./exported-tflite
 ```
 
 <p>A diagram of the model formation is illustrated below. </p>
