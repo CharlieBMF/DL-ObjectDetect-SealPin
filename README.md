@@ -219,4 +219,4 @@ python metadata_writer_for_object_detection.py --model_file mobilenet_v2_fpnlite
 ![image](https://user-images.githubusercontent.com/109242797/223389130-d4967d8a-3bf7-415a-a43b-5507885bc2d9.png)
 
 
-
+s
