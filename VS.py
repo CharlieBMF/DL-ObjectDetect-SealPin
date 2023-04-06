@@ -100,6 +100,10 @@ class VisionSystem:
         self.samba_connection_available = self.check_samba_connection_availability()
 
     def define_machine_root(self):
+        """
+        PLC controller connection object definition
+        :return: connection pymcprotocol object
+        """
         pymc3e = pymcprotocol.Type3E()
         if self.target_network and self.plc_id_in_target_network:
             pymc3e.network = self.target_network
@@ -107,25 +111,62 @@ class VisionSystem:
         return pymc3e
 
     def connect(self):
+        """
+        Establish connection with PLC
+        :return:
+        """
         self.machine.connect(ip=self.ip, port=self.port)
 
     def close_connection(self):
+        """
+        Closing connection with PLC
+        :return:
+        """
         self.machine.close()
 
     def read_bits(self, head, size=1):
+        """
+        Reading bits from PLC in order
+        :param head: initial bit address
+        :param size: number of consecutive bits to read
+        :return: list with bit values
+        """
         return self.machine.batchread_bitunits(headdevice=head, readsize=size)
 
     def read_words(self, head, size=1):
+        """
+        Reading words from PLC in order
+        :param head: initial word address
+        :param size: number of consecutive words to read
+        :return: list with words values
+        """
         return self.machine.batchread_wordunits(headdevice=head, readsize=size)
 
     def read_random_words(self, word_devices, double_word_devices):
+        """
+        Reading words from PLC not in order
+        :param word_devices: list of words to read
+        :param double_word_devices: list of dwords to read
+        :return: list of words/dwords values
+        """
         return self.machine.randomread(word_devices=word_devices, dword_devices=double_word_devices)
 
     def set_camera_resolution(self):
+        """
+        Setting the height and width of the photo
+        :return:
+        """
         self.camera.resolution = (self.image_width, self.image_height)
 
     @time_wrapper
     def initialize_model(self, model_file_name: str, score_min_value: float, category_names: list):
+        """
+        Initialization of the trained model with the relevant options
+        :param model_file_name: the name of the tflight file with the model
+        :param score_min_value: minimum detection value used for defect detection
+        :param category_names: categories detected in defect detection
+        :return: model initialized with parameters
+        """
         base_options = core.BaseOptions(
             file_name=model_file_name,
             use_coral=False,
@@ -145,6 +186,11 @@ class VisionSystem:
 
     @time_wrapper
     def define_directories(self):
+        """
+        Defined currently used access paths both on the SD card and on the samba server. In case of a new day,
+         another folder is created in the format YYYY-MM-DD
+        :return:
+        """
         if not self.local_image_directory.endswith(datetime.now().strftime('%Y-%m-%d')):
             new_local_directory = os.path.join(self.local_image_directory[:-10], datetime.now().strftime('%Y-%m-%d'))
             if not os.path.isdir(new_local_directory):
@@ -156,12 +202,20 @@ class VisionSystem:
             self.samba_image_directory = new_samba_directory
 
     def read_photo_trigger(self):
+        """
+        Reading the trigger to take the picture
+        :return: value of trigger to take a picture
+        """
         self.connect()
         trigger_value = self.read_bits(head=self.trigger_address)
         self.close_connection()
         return trigger_value[0]
 
     def read_2d_reader_finish_work(self):
+        """
+        Reading the bit indicating that the serial number has been read
+        :return: The value of the bit indicating that the serial number has been read
+        """
         self.connect()
         barcode_read_finished_status = self.read_bits(head=self.barcode_read_finished)
         self.close_connection()
@@ -170,6 +224,14 @@ class VisionSystem:
 
     @time_wrapper
     def read_barcode_value(self, timeout):
+        """
+        Reading the serial number value
+        :param timeout: time in seconds in which the bit indicating that the serial number has been correctly read
+        by the machine reader is expected to appear. The serial number value is converted to char.
+        If the value starts with ER, which means ERROR when read, the serial number value is considered as another
+        int value for the folder image
+        :return:
+        """
         barcode_send_OK_signal = False
         max_wait_time = time.time() + timeout
         while time.time() < max_wait_time:
@@ -208,6 +270,15 @@ class VisionSystem:
 
     @time_wrapper
     def define_raw_photo_name(self):
+        """
+        Defining the name of the raw photo to be saved. There are two cases.
+        1. correct reading of the serial number by the serial number reader and by the script directly from the PLC.
+        In this case, the name of the photo reflects the serial number. In the case where such a photo already exists,
+         a suffix is added, which is an int number representing the next time a photo of the same piece is taken.
+         2. Incorrect reading of serial number from plc or incorrect reading of serial number by serial number reader.
+          In this case, the picture name is defined as another free int number.
+        :return: raw image name
+        """
         print('self.barcode_value_ok_read:', self.barcode_value_OK_read)
         if self.barcode_value_OK_read:
             '''This means in variable barcode_value is value like: SC4T3319258'''
@@ -232,6 +303,10 @@ class VisionSystem:
 
     @time_wrapper
     def define_photo_number(self):
+        """
+        Defining the next free int number for the photo in case of incorrect reading of serial number
+        :return: string number that should be given to the photo
+        """
         if self.samba_connection_available:
             list_of_files = smbclient.listdir(self.samba_image_directory)
             list_of_images = [image for image in list_of_files if image.endswith('img.jpg')]
@@ -254,6 +329,11 @@ class VisionSystem:
 
     @time_wrapper
     def save_raw_image(self, image):
+        """
+        Save the raw image
+        :param image: image
+        :return:
+        """
         image_name = self.define_raw_photo_name()
         self.define_directories()
         image_path = os.path.join(self.local_image_directory, image_name)

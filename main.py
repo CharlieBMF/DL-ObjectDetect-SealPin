@@ -36,13 +36,6 @@ def show_image(displayed_plot, image_to_show):
     plt.pause(1)
 
 
-# def wait_until_barcode(timeout, vision_system):
-#     max_wait_time = time.time() + timeout
-#     while time.time() < max_wait_time:
-#         if vision_system.read_2d_reader_finish_work() == 1:
-#             break
-
-
 drawing = initialize_plotting()
 seal_pin = VisionSystem(id_line=machines_names['Gas_Generant']['id_line'],
                         id_machine=machines_names['Gas_Generant']['id_machine'],
