@@ -341,6 +341,11 @@ class VisionSystem:
 
     @time_wrapper
     def detect_defects(self, image):
+        """
+        Passing the image through the model and detection of defects
+        :param image: image
+        :return: detection result presence of defects
+        """
         rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         input_tensor = vision.TensorImage.create_from_array(rgb_image)
         detection_result = self.detection_model.detect(input_tensor)
@@ -348,11 +353,27 @@ class VisionSystem:
 
     @time_wrapper
     def add_ok_label_to_raw_image(self, image):
+        """
+        Calling the photo processing function according to the ok pattern.
+        Drawing a green frame around the photo and the OK text
+        :param image: image to process
+        :return: image with OK frame
+        """
         image_without_defect = utils.visualize_ok_labels(image, w=self.image_width, h=self.image_height)
         return image_without_defect
 
     @time_wrapper
     def define_defects_photo_name(self):
+        """
+        Defining the name of the photo witg defects to be saved. There are two cases.
+        1. correct reading of the serial number by the serial number reader and by the script directly from the PLC.
+        In this case, the name of the photo reflects the serial number with '_defects'.
+        In the case where such a photo already exists,a suffix is added, which is an int number representing the
+        next time a photo of the same piece is taken.
+         2. Incorrect reading of serial number from plc or incorrect reading of serial number by serial number reader.
+          In this case, the picture name is defined as another free int number with '_defects'.
+        :return: defect image name
+        """
         print('self.barcode value ok read', self.barcode_value_OK_read)
         if self.barcode_value_OK_read:
             jpg_name = self.barcode_value + '_defects.jpg'
@@ -375,6 +396,14 @@ class VisionSystem:
 
     @time_wrapper
     def add_defects_to_raw_image(self, defects, image):
+        """
+        Calling the photo processing function according to the NG pattern with defects.
+        Drawing a red frame around the photo and the NG text.
+        Drawing bounding boxes with detection categories and score value
+        :param defects: defects to be drawn
+        :param image: image to process
+        :return: image with NG label and bounding boxes
+        """
         for det in defects.detections:
             for cat in det.categories:
                 print("{cname} - {score:.2f}%".format(cname=cat.category_name, score=cat.score * 100))
@@ -383,6 +412,11 @@ class VisionSystem:
 
     @time_wrapper
     def save_image_with_defects(self, image_with_defect):
+        """
+        Save the defects image
+        :param image_with_defect: image with drawn defects
+        :return:
+        """
         image_name = self.define_defects_photo_name()
         image_path = os.path.join(self.local_image_directory, image_name)
         print('defect image name, path:', image_name, image_path)
