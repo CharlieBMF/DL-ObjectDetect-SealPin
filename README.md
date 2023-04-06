@@ -7,26 +7,70 @@ The goal of the project is to install on the production line a vision system bui
 
 ![image](https://user-images.githubusercontent.com/109242797/223128406-75077e16-5c15-4a1f-afee-4bb92c008b1f.png)
 
+<h1> Workstation design </h1>
+
+![image](https://user-images.githubusercontent.com/109242797/230353967-f3dbf645-a8bd-4a17-9a1a-ba8ce5dbcc7d.png)
+
 <h1> Sequence of work </h1> 
 The resulting system must interact with the operator according to the following sequence of operation: <br>
 <ol>
   <li> The operator places the item in the declining field in the machine. </li>
   <li>The machine uses a detection sensor to detect that a new workpiece is placed in the loading area, and also checks that the hands have been removed beyond the safety curtain. As a result, a signal - a marker - is triggered in the machine. </li>
-  <li> A python script implemented on a Raspberry Pi microcomputer communicates with the machine in real time and checks the status of the marker. If it is lit it is a signal to take a picture. </li>
+  <li> A python script implemented on a Raspberry Pi microcomputer communicates with the machine in real time and checks the status of the trigger marker. If it is lit it is a signal to take a picture. </li>
   <li> The marker triggers the taking of a picture using the PiCamera, a camera connected to the RPI. The photo is saved in an array in python script </li>
-  <li> An attempt is made to save the raw photo to the FTP server. If the attempt is successful the next step is performed. If there is an error in saving the photo to the FTP server, the photo is saved locally to the SD card in the RPI microcomputer. The name of the photo, which was saved locally due to a comminication error with the FTP server, is added to the corresponding table in the local SQL database. </li>
+  <li> Barcode reader connected to machine reads S/N of piece. </li>
+  <li> A python script attempts to read 2d code directly from a PLC placed on the machine. The timeout for this operation is 3 seconds. If the s/n is read correctly, it is then used in the name of the photo stored on the SAMBA server. If the code is not read, the photo number is given in the structure (int)img.jpg by specifying the last photo number on the SAMBA server. </li>
+  <li> The raw photo without processing is saved locally on the SD card in a folder represented as YYYY-MM-DD.  </li>
   <li> A photo previously stored in a numpy array is passed to be processed by a pre-trained model. The model checks for the presence of burrs in the photo. </li>
-  <li> If no burrs are present in the photo, it is passed to the script responsible for drawing a green box around it with the word OK </li>
-  <li> When burrs are detected, they are passed as an argument to the function that processes the image. A red frame with the word NG is drawn around the photo. In addition, the burr is marked along with the % grade in the photo. </li>
-  <li> The processed photo (OK or NG) is displayed on a display hooked up to the RPI visible to the operator. This allows him to see the need to trim the burrs if they are present. </li>
-  <li> If there are no burrs, an OK signal is sent to the machine. This signal causes the corresponding marker in the PLC to light up. </li>
-  <li> For burr detection, the process is extended. What follows is an attempt to save the photo with the burrs marked on the FTP server, with the photo name including the suffix '_defects'. If there is no communication, saving to the local SD card takes place, analogous to the process with the raw photo. 
-In addition, the burr information (detection window coordinates, category, % grade) is converted to JSON. What follows is an attempt to pass the above information to an external SQL server via the API. If the information is not written to the external SQL table, a write to the local sql database on the RPI is performed. </li>
-  <li> On subsequent program rounds, entries in the local SQL database are checked. This applies to both the table associated with the FTP image storage and the table associated with the NG piece detection site. If communication with an external FTP or SQL server is already possible, the local entries are transferred to the outside and deleted from the local database. This guarantees the reliability of the system's operation even if connections to external services are broken. In this case, there is a transfer of information to the local base, and from there it is passed to the outside when communication is stabilized. </li>
-  <li> If burrs occur, the operator must remove the piece from the machine, clean the burrs and repeat the process until the piece is determined to be OK </li>
+  <li> If no burrs are present in the photo, it is passed to the script responsible for drawing a green box around it with the word OK. Such a picture is displayed to the operator, it is allowed to put the part in the machine </li>
+  <li> Only in the case of burr detection, the photo is saved with detection to the SD card. In the case of OK photo, it is not saved after processing. </li>
+  <li> When a burr is detected the matter becomes more complicated. The priority becomes the timing of the image display for the operator. First, the raw photo along with the detection parameters is passed to a script that applies visual effects to the photo. The raw photo is processed, the detection area is superimposed on it, along with a red frame around it and the word NG. </li>
+  
+  ![image](https://user-images.githubusercontent.com/109242797/230356525-f874dd47-015b-4ab4-8ab1-f627e40580f5.png)
+
+  <li> The processed photo is displayed on a display hooked up to the RPI visible to the operator. This allows him to see the need to trim the burrs if they are present. Besides, in the background, the reporting of the art is started by the following actions. </li>
+  <li> A json object is created, which will be used for the detection report to the API. The API is configured as follows.
+  
+  ```python
+  [
+  {
+    "barcode": "string",
+    "created_at": "2023-04-06T10:58:12.862Z",
+    "description": "string",
+    "image_path": "string",
+    "detections": [
+      {
+        "bounding_box": {
+          "origin_x": 0,
+          "origin_y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "categories": [
+          {
+            "index": 0,
+            "score": 0,
+            "display_name": "string",
+            "category_name": "string"
+          }
+        ]
+      }
+    ]
+  }
+]
+  ```
+  <li> First, the resulting json object is saved as a string in the local sql created on the RPI. This is done to secure the results when the connection to the external API breaks. 
+
+![image](https://user-images.githubusercontent.com/109242797/230358551-5eeb73bd-4983-4f82-9893-413f806d4c82.png)
+
+</li>
+<li> At this point, both the photo and the detection json are stored locally. What follows is an attempt to flip these items to an external API and SAMBA server </li>
+<li> The last 100 records are downloaded to the local sql. If the external API works correctly, only one (last) record will be in the local sql. If the connection to the API is broken, more records will be added to the local sql. Limiting the number of records to 100 prevents too many records from being reported to the API at the same time. Records will be dosed in packets of maximum 100. </li>
+<li> In case of success response from api, 100 previously selected records from local sql are deleted. In case of no success nothing happens </li>
+<li> What follows is an attempt to copy all photos from the SD card to an external SAMBA server to a folder compatible with the YYYY-MM-DD format.  </li>
+<li> If writing to SAMBA is successful, the photos are deleted from the SD card. Otherwise, they are retained until they are correctly copied to the server. </li>
+<li> Program ends its circuit and waits for the next signal to trigger the photo. </li>
  </ol>
- 
- ![image](https://user-images.githubusercontent.com/109242797/223391530-2d4cd6d1-efa2-49ef-8bae-87f3282d4b67.png)
 
 
 <h1> Labeling </h1>
