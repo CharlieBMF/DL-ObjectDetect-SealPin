@@ -423,6 +423,12 @@ class VisionSystem:
         cv2.imwrite(image_path, image_with_defect)
 
     def create_detections_json(self, detections, detection_time):
+        """
+        Creates a json from the defect detections found
+        :param detections: detections determined by the model in the photo
+        :param detection_time: time taken by the model to detect defects in the image
+        :return: prepared json to raport to API
+        """
         detection_json = {
             'barcode': self.barcode_value,
             'created_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
@@ -454,6 +460,11 @@ class VisionSystem:
 
     @time_wrapper
     def report_detection_to_local_sql(self, json_obj):
+        """
+        Inserting a JSON object containing detection data into a local SQL database
+        :param json_obj: json object to be inserted into localSQL
+        :return:
+        """
         detection_quotes_converted = str(json_obj).replace("'", '"')
         query = f"INSERT INTO detections(detecion_json, time_stamp) VALUES" \
                 f" ('{detection_quotes_converted}','{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}')"
@@ -461,11 +472,19 @@ class VisionSystem:
         self.commit_query_to_local_sql(query)
 
     def delete_top100_detections_from_local_sql(self):
+        """
+        Delete top 100 rows in local sql
+        :return:
+        """
         query = "DELETE FROM detections WHERE ctid IN (SELECT ctid FROM detections ORDER BY time_stamp LIMIT 100)"
         self.commit_query_to_local_sql(query)
 
     @time_wrapper
     def copy_images_to_samba_server(self):
+        """
+        Copy images from RPI SD Card to samba server
+        :return:
+        """
         list_of_images_path = glob.glob(self.local_image_directory + '/*.jpg')
         list_of_images = [os.path.basename(x) for x in list_of_images_path]
         list_of_images_tuple = [(list_of_images_path[i], list_of_images[i]) for i in range(0, len(list_of_images_path))]
@@ -477,12 +496,20 @@ class VisionSystem:
 
     @time_wrapper
     def delete_images_from_local_SDCard(self):
+        """
+        Delete images from RPI SD Card
+        :return:
+        """
         list_of_images_path = glob.glob(self.local_image_directory + '/*.jpg')
         for image in list_of_images_path:
             os.remove(image)
 
     @staticmethod
     def check_samba_connection_availability():
+        """
+        Check if there is a possibility to connect to samba server
+        :return: status of connection
+        """
         if smbclient.path.isdir('\\\\192.168.200.101\\vp_es3_ai\SEALPIN'):
             return True
         else:
@@ -490,6 +517,10 @@ class VisionSystem:
 
     @staticmethod
     def select_top100_detections_from_local_sql():
+        """
+        Selecting top 100 rows from local sql with detection json
+        :return: top 100 rows inserted into json object
+        """
         query = "SELECT * FROM detections LIMIT 100;"
         conn = pg2.connect(database='pi', user='pi', password='pi')
         select_df = pd.read_sql(query, con=conn)
@@ -500,6 +531,11 @@ class VisionSystem:
 
     @staticmethod
     def commit_query_to_local_sql(query):
+        """
+        Commiting queries to local SQL
+        :param query: query which has to be commited
+        :return:
+        """
         conn = pg2.connect(database='pi', user='pi', password='pi')
         cur = conn.cursor()
         cur.execute(query)
@@ -508,6 +544,11 @@ class VisionSystem:
 
     @staticmethod
     def report_detection_to_api(json_obj):
+        """
+        Reporting detection json object to API
+        :param json_obj: json object to be reported
+        :return:
+        """
         print('FINAL JSON TO API:', json_obj)
         response = requests.post('http://hamster.dsse.local/Vision/SendData', json=json_obj)
         print('Response text:', response.text)

@@ -1,3 +1,5 @@
+#!/usr/bin/python
+
 """
 Main module to initialize vision system and run loop to start functionality
 """
@@ -51,21 +53,16 @@ seal_pin = VisionSystem(id_line=machines_names['Gas_Generant']['id_line'],
 
 while True:
     # Detect trigger value
-    start = time.time()
+    start_time = time.time()
     trigger_value = seal_pin.read_photo_trigger()
-    #print('Trigger value:', trigger_value)
     if trigger_value != seal_pin.trigger_value:
-    ##if True:
         # Detected trigger value change
         seal_pin.trigger_value = trigger_value
         if seal_pin.trigger_value == 1:
-        ##if True:
             # Detected trigger value change from 0 to 1, photo has to be executed
-            #seal_pin.define_photo_number()
             image = np.empty((seal_pin.image_width, seal_pin.image_height, 3), dtype=np.uint8)
             seal_pin.camera.capture(image, 'bgr')
             # Read Barcode
-            # wait_until_barcode(3, seal_pin)
             seal_pin.read_barcode_value(timeout=3)
             # Capture photo
             seal_pin.save_raw_image(image)
@@ -82,8 +79,7 @@ while True:
             # Time priority to show image for operator
             show_image(drawing, image_with_judgement)
             if defects.detections:
-                stop = time.time()
-                detection_time = stop - start
+                detection_time = time.time() - start_time
                 # Background action to send detection info to localSQL and select last 100 sql rows
                 detection_json = seal_pin.create_detections_json(defects.detections, detection_time)
                 seal_pin.report_detection_to_local_sql(detection_json)
