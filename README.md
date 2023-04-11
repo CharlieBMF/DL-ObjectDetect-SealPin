@@ -262,5 +262,13 @@ python metadata_writer_for_object_detection.py --model_file mobilenet_v2_fpnlite
 
 ![image](https://user-images.githubusercontent.com/109242797/223389130-d4967d8a-3bf7-415a-a43b-5507885bc2d9.png)
 
+<h1> API </h1>
 
-s
+<p> The api was configured in the initial phase as one get and one post only. Post is used to record detections, while with get it is possible to obtain data of any historical element as follows </p>
+
+![image](https://user-images.githubusercontent.com/109242797/231136103-0caf20a1-8d59-4adc-87ba-e98dc9a37c19.png)
+
+![image](https://user-images.githubusercontent.com/109242797/231136244-1f8dfc1a-86d2-4f45-ac44-33b7ac161d8d.png)
+
+<h1> Results </h1> 
+
