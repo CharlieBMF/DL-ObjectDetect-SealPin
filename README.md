@@ -262,6 +262,31 @@ python metadata_writer_for_object_detection.py --model_file mobilenet_v2_fpnlite
 
 ![image](https://user-images.githubusercontent.com/109242797/223389130-d4967d8a-3bf7-415a-a43b-5507885bc2d9.png)
 
+<h1> Conf.py </h1>
+<p> conf.py is the main configuration file for the script. It defines the way to access the machine on which the vision system is installed, the addresses used and, most importantly, the PLC addresses used for triggering the image, reading the barcode number and also reading the barcode itself. </p>
+
+```python
+machines_names = {
+    'Gas_Generant':
+        {
+            'id_line': 33,
+            'id_machine': 240,
+            'name': 'GG',
+            'ip': '192.168.10.161',
+            'port': 40021,
+            'address':
+                {
+                    'Trigger_address': 'M766',
+                    'Barcode_read_finished': 'M767',
+                    'Barcode_address': 'D654',
+
+                },
+            'target_network': None,
+            'plc_id_in_target_network': None
+        },
+}
+```
+
 <h1> API </h1>
 
 <p> The api was configured in the initial phase as one get and one post only. Post is used to record detections, while with get it is possible to obtain data of any historical element as follows </p>
@@ -269,6 +294,11 @@ python metadata_writer_for_object_detection.py --model_file mobilenet_v2_fpnlite
 ![image](https://user-images.githubusercontent.com/109242797/231136103-0caf20a1-8d59-4adc-87ba-e98dc9a37c19.png)
 
 ![image](https://user-images.githubusercontent.com/109242797/231136244-1f8dfc1a-86d2-4f45-ac44-33b7ac161d8d.png)
+
+<h1> SQL config </h1>
+
+![image](https://user-images.githubusercontent.com/109242797/231774482-1e235f28-51e8-4678-95ab-a4f7df203298.png)
+
 
 <h1> Results </h1> 
 
